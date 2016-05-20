@@ -1,0 +1,6 @@
+[package]
+name = "rust64"
+version = "0.1.0"
+authors = ["gareth"]
+
+[dependencies]
