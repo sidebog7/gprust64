@@ -1,3 +1,5 @@
+use std::fmt;
+
 const PIF_ROM_SIZE: usize = 2048;
 const RAM_SIZE: usize = 4 * 1024 * 1024;
 
@@ -6,6 +8,11 @@ pub struct Bus {
     ram: Vec<u16>,
 }
 
+impl fmt::Debug for Bus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Bus")
+    }
+}
 impl Bus {
     pub fn new(pifrom: Vec<u8>) -> Bus {
         Bus {

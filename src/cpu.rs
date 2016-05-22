@@ -5,6 +5,7 @@ const NUM_FPREG: usize = 32;
 
 const PIF_ROM_START: u64 = 0xffff_ffff_bfc0_0000;
 
+#[derive(Debug)]
 enum RegConfigEP {
     D,
     DxxDxx,
@@ -17,6 +18,7 @@ impl Default for RegConfigEP {
     }
 }
 
+#[derive(Debug)]
 enum RegConfigBE {
     LittleEndian,
     BigEndian,
@@ -28,7 +30,7 @@ impl Default for RegConfigBE {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct RegConfig {
     reg_configep: RegConfigEP,
     reg_configbe: RegConfigBE,
@@ -41,7 +43,7 @@ impl RegConfig {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct CP0 {
     reg_config: RegConfig,
 }
@@ -52,6 +54,7 @@ impl CP0 {
     }
 }
 
+#[derive(Debug)]
 pub struct Cpu {
     reg_gprs: [u64; NUM_GPREG],
     reg_fprs: [f64; NUM_FPREG],
@@ -101,14 +104,41 @@ impl Cpu {
 
     pub fn run(&mut self) {
         loop {
-            let opcode = self.read_word(self.reg_pc);
-            panic!("Opcode {:#x}", opcode);
+            self.run_instruction();
         }
+    }
+
+    pub fn run_instruction(&mut self) {
+        let instruction = self.read_word(self.reg_pc);
+
+
+        let opcode = (instruction >> 26) & 0b111111;
+        match opcode {
+            0b001111 => {
+                // LUI
+                println!("LUI!");
+                let imval = instruction & 0xffff;
+                let rt = (instruction >> 16) & 0b11111;
+                // assume 32 bit mode
+                self.write_gpr(rt as usize, (imval << 16) as u64);
+            }
+            _ => {
+                panic!("Unrecognised opcode {:#x}", opcode);
+            }
+        }
+
+        self.reg_pc += 4;
     }
 
     fn read_word(&self, addr: u64) -> u32 {
         let paddr = vaddr_to_paddr(addr);
         self.bus.read_word(paddr as u32)
+    }
+
+    fn write_gpr(&mut self, index: usize, value: u64) {
+        if index != 0 {
+            self.reg_gprs[index] = value;
+        }
     }
 }
 
