@@ -5,3 +5,4 @@ authors = ["gareth"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
+byteorder = "0.5.1"
