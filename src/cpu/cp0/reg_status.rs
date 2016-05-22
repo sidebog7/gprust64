@@ -53,9 +53,9 @@ impl RegStatus {
         self.reverse_endian = ((data >> 25) & 0b1) != 0;
 
         let diag_status = ((data >> 16) & 0b111111111) as u16;
-        self.diag_status.write(diag_status);
+        self.diag_status = diag_status.into();
         let interrupt_mask = ((data >> 8) & 0xff) as u8;
-        self.interrupt_mask.write(interrupt_mask);
+        self.interrupt_mask = interrupt_mask.into();
 
         self.kernel_mode_64bit = ((data >> 7) & 0b1) != 0;
         self.supervisor_mode_64bit = ((data >> 6) & 0b1) != 0;
@@ -76,7 +76,7 @@ struct DiagnosticStatus {
     instruction_trace_support: bool,
 
     // BEV
-    tlb_exception_vector_location: ExceptionVectorLocation,
+    tlb_exception_vector_location: TLBExceptionVectorLocation,
 
     // TS
     tlb_shutdown: bool,
@@ -88,13 +88,15 @@ struct DiagnosticStatus {
     condition_bit: bool,
 }
 
-impl DiagnosticStatus {
-    fn write(&mut self, data: u16) {
-        self.instruction_trace_support = 0b10000000 != 0;
-        self.tlb_exception_vector_location = data.into();
-        self.tlb_shutdown = 0b100000 != 0;
-        self.soft_reset_or_nmi_occurred = 0b10000 != 0;
-        self.condition_bit = 0b100 != 0;
+impl From<u16> for DiagnosticStatus {
+    fn from(f: u16) -> Self {
+        DiagnosticStatus {
+            instruction_trace_support: 0b10000000 != 0,
+            tlb_exception_vector_location: f.into(),
+            tlb_shutdown: 0b100000 != 0,
+            soft_reset_or_nmi_occurred: 0b10000 != 0,
+            condition_bit: 0b100 != 0,
+        }
     }
 }
 
@@ -110,16 +112,17 @@ struct InterruptMask {
     software_interrupt: [bool; 2],
 }
 
-impl InterruptMask {
-    fn write(&mut self, data: u8) {
-        self.timer_interrupt = (data & 0b10000000) != 0;
-        self.external_interrupt[4] = (data & 0b01000000) != 0;
-        self.external_interrupt[3] = (data & 0b00100000) != 0;
-        self.external_interrupt[2] = (data & 0b00010000) != 0;
-        self.external_interrupt[1] = (data & 0b00001000) != 0;
-        self.external_interrupt[0] = (data & 0b00000100) != 0;
-        self.software_interrupt[1] = (data & 0b00000010) != 0;
-        self.software_interrupt[0] = (data & 0b00000001) != 0;
+impl From<u8> for InterruptMask {
+    fn from(data: u8) -> Self {
+        InterruptMask {
+            timer_interrupt: (data & 0b10000000) != 0,
+            external_interrupt: [(data & 0b00000100) != 0,
+                                 (data & 0b00001000) != 0,
+                                 (data & 0b00010000) != 0,
+                                 (data & 0b00100000) != 0,
+                                 (data & 0b01000000) != 0],
+            software_interrupt: [(data & 0b00000001) != 0, (data & 0b00000010) != 0],
+        }
     }
 }
 
@@ -153,23 +156,23 @@ impl From<u32> for Mode {
 }
 
 #[derive(Debug)]
-enum ExceptionVectorLocation {
+enum TLBExceptionVectorLocation {
     Normal,
     Bootstrap,
 }
 
-impl Default for ExceptionVectorLocation {
+impl Default for TLBExceptionVectorLocation {
     fn default() -> Self {
-        ExceptionVectorLocation::Normal
+        TLBExceptionVectorLocation::Normal
     }
 }
 
-impl From<u16> for ExceptionVectorLocation {
+impl From<u16> for TLBExceptionVectorLocation {
     fn from(f: u16) -> Self {
-        if f & 0b001000000 == 0 {
-            ExceptionVectorLocation::Normal
-        } else {
-            ExceptionVectorLocation::Bootstrap
+        match f & 0b001000000 {
+            0 => TLBExceptionVectorLocation::Normal,
+            1 => TLBExceptionVectorLocation::Bootstrap,
+            _ => unreachable!(),
         }
     }
 }
