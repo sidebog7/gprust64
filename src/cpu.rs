@@ -1,7 +1,8 @@
+use super::bus;
+
 const NUM_GPREG: usize = 32;
 const NUM_FPREG: usize = 32;
 
-#[derive(Default, Debug)]
 pub struct Cpu {
     reg_gprs: [u64; NUM_GPREG],
     reg_fprs: [u64; NUM_FPREG],
@@ -17,15 +18,39 @@ pub struct Cpu {
     reg_fcr31: u32,
 
     cp0: CP0,
+
+    bus: bus::Bus,
 }
 
 impl Cpu {
+    pub fn new(bus: bus::Bus) -> Cpu {
+        Cpu {
+            reg_gprs: [0; NUM_GPREG],
+            reg_fprs: [0; NUM_FPREG],
+
+            reg_pc: 0,
+
+            reg_hi: 0,
+            reg_lo: 0,
+
+            reg_llbit: false,
+
+            reg_fcr0: 0,
+            reg_fcr31: 0,
+
+            cp0: CP0::default(),
+
+            bus: bus,
+        }
+    }
+
     pub fn power_on_reset(&mut self) {
         self.cp0.power_on_reset();
     }
+
+    pub fn run(&mut self) {}
 }
 
-#[derive(Debug)]
 enum RegConfigEP {
     D,
     DxxDxx,
@@ -38,7 +63,6 @@ impl Default for RegConfigEP {
     }
 }
 
-#[derive(Debug)]
 enum RegConfigBE {
     LittleEndian,
     BigEndian,
@@ -50,7 +74,7 @@ impl Default for RegConfigBE {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct RegConfig {
     reg_configep: RegConfigEP,
     reg_configbe: RegConfigBE,
@@ -63,7 +87,7 @@ impl RegConfig {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct CP0 {
     reg_config: RegConfig,
 }
