@@ -52,7 +52,7 @@ impl RegStatus {
         self.fpregs_extend = ((data >> 26) & 0b1) != 0;
         self.reverse_endian = ((data >> 25) & 0b1) != 0;
 
-        let diag_status = ((data >> 16) & 0xff) as u8;
+        let diag_status = ((data >> 16) & 0b111111111) as u16;
         self.diag_status.write(diag_status);
         let interrupt_mask = ((data >> 8) & 0xff) as u8;
         self.interrupt_mask.write(interrupt_mask);
@@ -61,26 +61,10 @@ impl RegStatus {
         self.supervisor_mode_64bit = ((data >> 6) & 0b1) != 0;
         self.user_mode_64bit = ((data >> 5) & 0b1) != 0;
 
-        let mode = ((data >> 3) & 0b11) as u8;
-        self.mode = match mode {
-            0b00 => Mode::Kernel,
-            0b01 => Mode::Supervisor,
-            0b10 => Mode::User,
-            _ => panic!("Invalid mode {:#b}", mode),
-        };
+        self.mode = data.into();
 
-        self.error_level = if ((data >> 2) & 0b1) != 0 {
-            ErrorLevel::Normal
-        } else {
-            ErrorLevel::Error
-        };
-
-
-        self.exception_level = if ((data >> 2) & 0b1) != 0 {
-            ExceptionLevel::Normal
-        } else {
-            ExceptionLevel::Exception
-        };
+        self.error_level = data.into();
+        self.exception_level = data.into();
 
         self.interrupt_enabled = (data & 0b1) != 0;
     }
@@ -105,9 +89,12 @@ struct DiagnosticStatus {
 }
 
 impl DiagnosticStatus {
-    fn write(&mut self, data: u8) {
+    fn write(&mut self, data: u16) {
         self.instruction_trace_support = 0b10000000 != 0;
-
+        self.tlb_exception_vector_location = data.into();
+        self.tlb_shutdown = 0b100000 != 0;
+        self.soft_reset_or_nmi_occurred = 0b10000 != 0;
+        self.condition_bit = 0b100 != 0;
     }
 }
 
@@ -149,8 +136,19 @@ enum Mode {
 }
 
 impl Default for Mode {
-    fn default() -> Mode {
+    fn default() -> Self {
         Mode::Kernel
+    }
+}
+
+impl From<u32> for Mode {
+    fn from(f: u32) -> Self {
+        match (f >> 3) & 0b11 {
+            0b00 => Mode::Kernel,
+            0b01 => Mode::Supervisor,
+            0b10 => Mode::User,
+            _ => panic!("Invalid mode {:#b}", f),
+        }
     }
 }
 
@@ -161,8 +159,18 @@ enum ExceptionVectorLocation {
 }
 
 impl Default for ExceptionVectorLocation {
-    fn default() -> ExceptionVectorLocation {
+    fn default() -> Self {
         ExceptionVectorLocation::Normal
+    }
+}
+
+impl From<u16> for ExceptionVectorLocation {
+    fn from(f: u16) -> Self {
+        if f & 0b001000000 == 0 {
+            ExceptionVectorLocation::Normal
+        } else {
+            ExceptionVectorLocation::Bootstrap
+        }
     }
 }
 
@@ -173,8 +181,18 @@ enum ErrorLevel {
 }
 
 impl Default for ErrorLevel {
-    fn default() -> ErrorLevel {
+    fn default() -> Self {
         ErrorLevel::Normal
+    }
+}
+
+impl From<u32> for ErrorLevel {
+    fn from(f: u32) -> Self {
+        if ((f >> 2) & 0b1) != 0 {
+            ErrorLevel::Normal
+        } else {
+            ErrorLevel::Error
+        }
     }
 }
 
@@ -185,7 +203,17 @@ enum ExceptionLevel {
 }
 
 impl Default for ExceptionLevel {
-    fn default() -> ExceptionLevel {
+    fn default() -> Self {
         ExceptionLevel::Normal
+    }
+}
+
+impl From<u32> for ExceptionLevel {
+    fn from(f: u32) -> Self {
+        if ((f >> 2) & 0b1) != 0 {
+            ExceptionLevel::Normal
+        } else {
+            ExceptionLevel::Exception
+        }
     }
 }
