@@ -1,58 +1,10 @@
-use super::bus;
+use super::super::bus;
+use super::cp0::cp0::CP0;
 
 const NUM_GPREG: usize = 32;
 const NUM_FPREG: usize = 32;
 
 const PIF_ROM_START: u64 = 0xffff_ffff_bfc0_0000;
-
-#[derive(Debug)]
-enum RegConfigEP {
-    D,
-    DxxDxx,
-    RFU,
-}
-
-impl Default for RegConfigEP {
-    fn default() -> RegConfigEP {
-        RegConfigEP::D
-    }
-}
-
-#[derive(Debug)]
-enum RegConfigBE {
-    LittleEndian,
-    BigEndian,
-}
-
-impl Default for RegConfigBE {
-    fn default() -> RegConfigBE {
-        RegConfigBE::BigEndian
-    }
-}
-
-#[derive(Default, Debug)]
-struct RegConfig {
-    reg_configep: RegConfigEP,
-    reg_configbe: RegConfigBE,
-}
-
-impl RegConfig {
-    fn power_on_reset(&mut self) {
-        self.reg_configep = RegConfigEP::D;
-        self.reg_configbe = RegConfigBE::BigEndian;
-    }
-}
-
-#[derive(Default, Debug)]
-struct CP0 {
-    reg_config: RegConfig,
-}
-
-impl CP0 {
-    fn power_on_reset(&mut self) {
-        self.reg_config.power_on_reset();
-    }
-}
 
 #[derive(Debug)]
 pub struct Cpu {
@@ -116,14 +68,20 @@ impl Cpu {
         match opcode {
             0b001111 => {
                 // LUI
-                println!("LUI!");
                 let imval = instruction & 0xffff;
                 let rt = (instruction >> 16) & 0b11111;
                 // assume 32 bit mode
                 self.write_gpr(rt as usize, (imval << 16) as u64);
             }
+            0b010000 => {
+                // MTC0
+                let rd = (instruction >> 11) & 0b11111;
+                let rt = (instruction >> 16) & 0b11111;
+                let data = self.read_gpr(rt as usize);
+                self.cp0.write_reg(rd, data);
+            }
             _ => {
-                panic!("Unrecognised opcode {:#x}", opcode);
+                panic!("Unrecognised instruction {:#x}", instruction);
             }
         }
 
@@ -138,6 +96,13 @@ impl Cpu {
     fn write_gpr(&mut self, index: usize, value: u64) {
         if index != 0 {
             self.reg_gprs[index] = value;
+        }
+    }
+
+    fn read_gpr(&self, index: usize) -> u64 {
+        match index {
+            0 => 0,
+            _ => self.reg_gprs[index],
         }
     }
 }
