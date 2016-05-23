@@ -65,20 +65,27 @@ impl Cpu {
 
 
         let opcode = (instruction >> 26) & 0b111111;
+        let rs = (instruction >> 21) & 0b11111;
+        let rt = (instruction >> 16) & 0b11111;
+        let imval = instruction & 0xffff;
+
         match opcode {
-            0b001111 => {
-                // LUI
-                let imval = instruction & 0xffff;
-                let rt = (instruction >> 16) & 0b11111;
-                // assume 32 bit mode
-                self.write_gpr(rt as usize, (imval << 16) as u64);
-            }
             0b010000 => {
                 // MTC0
                 let rd = (instruction >> 11) & 0b11111;
-                let rt = (instruction >> 16) & 0b11111;
                 let data = self.read_gpr(rt as usize);
                 self.cp0.write_reg(rd, data);
+            }
+            0b001101 => {
+                // ORI
+                let res = self.read_gpr(rs as usize) | (imval as u64);
+                self.write_gpr(rt as usize, res);
+            }
+            0b001111 => {
+                // LUI
+                let rt = (instruction >> 16) & 0b11111;
+                // assume 32 bit mode
+                self.write_gpr(rt as usize, (imval << 16) as u64);
             }
             _ => {
                 panic!("Unrecognised instruction {:#x}", instruction);
