@@ -1,5 +1,5 @@
 use super::super::bus;
-use super::cp0::cp0::CP0;
+use super::cp0::CP0;
 use super::instruction::Instruction;
 
 const NUM_GPREG: usize = 32;

@@ -1,5 +1,5 @@
 use super::byteorder::{BigEndian, ByteOrder};
-use cpu::instruction::Instruction;
+use cpu::Instruction;
 use std::fmt;
 
 const PIF_ROM_SIZE: usize = 2048;

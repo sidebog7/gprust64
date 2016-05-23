@@ -1,4 +1,4 @@
-use super::cpu::cpu;
+use super::cpu;
 use super::bus;
 
 #[derive(Debug)]
