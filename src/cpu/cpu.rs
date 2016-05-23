@@ -139,7 +139,7 @@ impl Cpu {
             0b100011 => {
                 // LW
                 let base = self.read_gpr(rs as usize);
-                let vaddr = ((instruction.get_immediate() as i16) as u64) + base;
+                let vaddr = base.wrapping_add((instruction.get_immediate() as i16) as u64);
                 if vaddr & 0b11 != 0 {
                     panic!("Address error exception");
                 }
