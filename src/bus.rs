@@ -1,4 +1,5 @@
 use super::byteorder::{BigEndian, ByteOrder};
+use cpu::instruction::Instruction;
 use std::fmt;
 
 const PIF_ROM_SIZE: usize = 2048;
@@ -22,11 +23,11 @@ impl Bus {
         }
     }
 
-    pub fn read_word(&self, addr: u32) -> u32 {
+    pub fn read_word(&self, addr: u32) -> Instruction {
         if addr >= 0x1fc0_0000 && addr < 0x1fc0_07c0 {
             let rel_addr = addr - 0x1fc0_0000;
 
-            BigEndian::read_u32(&self.pifrom[rel_addr as usize..])
+            Instruction::new(BigEndian::read_u32(&self.pifrom[rel_addr as usize..]))
 
         } else {
             panic!("Unrecognised physical address {:#x}", addr);

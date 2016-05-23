@@ -1,5 +1,6 @@
 use super::super::bus;
 use super::cp0::cp0::CP0;
+use super::instruction::Instruction;
 
 const NUM_GPREG: usize = 32;
 const NUM_FPREG: usize = 32;
@@ -64,15 +65,15 @@ impl Cpu {
         let instruction = self.read_word(self.reg_pc);
 
 
-        let opcode = (instruction >> 26) & 0b111111;
-        let rs = (instruction >> 21) & 0b11111;
-        let rt = (instruction >> 16) & 0b11111;
-        let imval = instruction & 0xffff;
+        let opcode = instruction.get_bits(26, 6);
+        let rs = instruction.get_bits(21, 5);
+        let rt = instruction.get_bits(16, 5);
+        let imval = instruction.get_bits(0, 16);
 
         match opcode {
             0b010000 => {
                 // MTC0
-                let rd = (instruction >> 11) & 0b11111;
+                let rd = instruction.get_bits(11, 5);
                 let data = self.read_gpr(rt as usize);
                 self.cp0.write_reg(rd, data);
             }
@@ -83,9 +84,18 @@ impl Cpu {
             }
             0b001111 => {
                 // LUI
-                let rt = (instruction >> 16) & 0b11111;
                 // assume 32 bit mode
                 self.write_gpr(rt as usize, (imval << 16) as u64);
+            }
+            0b100011 => {
+                let base = self.read_gpr(rs as usize);
+                let vaddr = (imval as u64) + base;
+                panic!("Word {:#x}, base {:#x}, vaddr: {:#x}, imval: {:#x}",
+                       instruction,
+                       base,
+                       vaddr,
+                       imval);
+
             }
             _ => {
                 panic!("Unrecognised instruction {:#x}", instruction);
@@ -95,7 +105,7 @@ impl Cpu {
         self.reg_pc += 4;
     }
 
-    fn read_word(&self, addr: u64) -> u32 {
+    fn read_word(&self, addr: u64) -> Instruction {
         let paddr = vaddr_to_paddr(addr);
         self.bus.read_word(paddr as u32)
     }
