@@ -3,7 +3,8 @@
 pub struct RegConfig {
     transfer_data_pattern: TransferDataPattern,
     endianness: Endianness,
-    coherency_algorithm: CoherencyAlgorithm,
+    cu: bool,
+    kseg0_coherency_algorithm: CoherencyAlgorithm,
 }
 
 impl RegConfig {
@@ -18,7 +19,8 @@ impl From<u32> for RegConfig {
         RegConfig {
             transfer_data_pattern: data.into(),
             endianness: data.into(),
-            coherency_algorithm: data.into(),
+            cu: (data >> 3) & 0b1 != 0,
+            kseg0_coherency_algorithm: data.into(),
         }
     }
 }
@@ -62,10 +64,10 @@ impl Default for Endianness {
 impl From<u32> for Endianness {
     fn from(f: u32) -> Self {
         let endiannessdata = (f >> 15) & 0b1;
-        if endiannessdata == 0 {
-            Endianness::LittleEndian
-        } else {
-            Endianness::BigEndian
+        match endiannessdata {
+            0 => Endianness::LittleEndian,
+            1 => Endianness::BigEndian,
+            _ => unreachable!(),
         }
     }
 }
@@ -85,9 +87,11 @@ impl Default for CoherencyAlgorithm {
 impl From<u32> for CoherencyAlgorithm {
     fn from(f: u32) -> Self {
         let coherency_algorithmdata = f & 0b111;
-        match coherency_algorithmdata {
-            0b010 => CoherencyAlgorithm::NotUsed,
-            _ => CoherencyAlgorithm::Used,
+        if coherency_algorithmdata == 0b010 {
+            CoherencyAlgorithm::NotUsed
+        } else {
+            CoherencyAlgorithm::Used
         }
+
     }
 }
