@@ -23,7 +23,6 @@ fn main() {
         n64.run_instruction();
     }
 
-
 }
 
 

@@ -17,10 +17,17 @@ impl CP0 {
             12 => {
                 self.write_status_reg(data);
             }
+            16 => {
+                self.write_config_reg(data);
+            }
             _ => {
-                panic!("Unrecognised CP0 write: {:#?}, {:#?}", index, data);
+                panic!("Unrecognised CP0 write: {}, {:#x}", index, data);
             }
         }
+    }
+
+    fn write_config_reg(&mut self, data: u64) {
+        self.reg_config.write(data as u32);
     }
 
     fn write_status_reg(&mut self, data: u64) {
