@@ -11,11 +11,15 @@ impl RegConfig {
         self.ep = EP::D;
         self.be = BE::BigEndian;
     }
+}
 
-    pub fn write(&mut self, data: u32) {
-        self.ep = data.into();
-        self.be = data.into();
-        self.k0 = data.into();
+impl From<u32> for RegConfig {
+    fn from(data: u32) -> Self {
+        RegConfig {
+            ep: data.into(),
+            be: data.into(),
+            k0: data.into(),
+        }
     }
 }
 

@@ -40,33 +40,29 @@ pub struct RegStatus {
     interrupt_enabled: bool,
 }
 
-impl RegStatus {
-    pub fn write(&mut self, data: u32) {
+impl From<u32> for RegStatus {
+    fn from(data: u32) -> Self {
         let coproc = data >> 28;
-        self.coproc_usability[3] = (coproc & 0b1000) != 0;
-        self.coproc_usability[2] = (coproc & 0b0100) != 0;
-        self.coproc_usability[1] = (coproc & 0b0010) != 0;
-        self.coproc_usability[0] = (coproc & 0b0001) != 0;
-
-        self.low_power = ((data >> 27) & 0b1) != 0;
-        self.fpregs_extend = ((data >> 26) & 0b1) != 0;
-        self.reverse_endian = ((data >> 25) & 0b1) != 0;
-
         let diag_status = ((data >> 16) & 0b111111111) as u16;
-        self.diag_status = diag_status.into();
         let interrupt_mask = ((data >> 8) & 0xff) as u8;
-        self.interrupt_mask = interrupt_mask.into();
-
-        self.kernel_mode_64bit = ((data >> 7) & 0b1) != 0;
-        self.supervisor_mode_64bit = ((data >> 6) & 0b1) != 0;
-        self.user_mode_64bit = ((data >> 5) & 0b1) != 0;
-
-        self.mode = data.into();
-
-        self.error_level = data.into();
-        self.exception_level = data.into();
-
-        self.interrupt_enabled = (data & 0b1) != 0;
+        RegStatus {
+            coproc_usability: [(coproc & 0b0001) != 0,
+                               (coproc & 0b0010) != 0,
+                               (coproc & 0b0100) != 0,
+                               (coproc & 0b1000) != 0],
+            low_power: ((data >> 27) & 0b1) != 0,
+            fpregs_extend: ((data >> 26) & 0b1) != 0,
+            reverse_endian: ((data >> 25) & 0b1) != 0,
+            diag_status: diag_status.into(),
+            interrupt_mask: interrupt_mask.into(),
+            kernel_mode_64bit: ((data >> 7) & 0b1) != 0,
+            supervisor_mode_64bit: ((data >> 6) & 0b1) != 0,
+            user_mode_64bit: ((data >> 5) & 0b1) != 0,
+            mode: data.into(),
+            error_level: data.into(),
+            exception_level: data.into(),
+            interrupt_enabled: (data & 0b1) != 0,
+        }
     }
 }
 
