@@ -62,13 +62,13 @@ impl Cpu {
     }
 
     pub fn run_instruction(&mut self) {
-        let instruction = self.read_word(self.reg_pc);
+        let instruction = self.read_instruction(self.reg_pc);
 
 
-        let opcode = instruction.get_bits(26, 6);
+        let opcode = instruction.get_opcode();
         let rs = instruction.get_bits(21, 5);
         let rt = instruction.get_bits(16, 5);
-        let imval = instruction.get_bits(0, 16);
+        let imval = instruction.get_immediate();
 
         match opcode {
             0b010000 => {
@@ -85,16 +85,24 @@ impl Cpu {
             0b001111 => {
                 // LUI
                 // assume 32 bit mode
-                self.write_gpr(rt as usize, (imval << 16) as u64);
+                self.write_gpr(rt as usize, (((imval as u32) << 16) as i32) as u64);
             }
             0b100011 => {
+                // LW
                 let base = self.read_gpr(rs as usize);
-                let vaddr = (imval as u64) + base;
+                let vaddr = ((instruction.get_immediate() as i16) as u64) + base;
+                if vaddr & 0b11 != 0 {
+                    panic!("Address error exception");
+                }
                 panic!("Word {:#x}, base {:#x}, vaddr: {:#x}, imval: {:#x}",
                        instruction,
                        base,
                        vaddr,
                        imval);
+                let word = self.read_word(vaddr);
+                let mem = (word as i32) as u64;
+                self.write_gpr(rt as usize, mem);
+
 
             }
             _ => {
@@ -105,9 +113,13 @@ impl Cpu {
         self.reg_pc += 4;
     }
 
-    fn read_word(&self, addr: u64) -> Instruction {
+    fn read_word(&self, addr: u64) -> u32 {
         let paddr = vaddr_to_paddr(addr);
         self.bus.read_word(paddr as u32)
+    }
+
+    fn read_instruction(&self, addr: u64) -> Instruction {
+        Instruction::new(self.read_word(addr))
     }
 
     fn write_gpr(&mut self, index: usize, value: u64) {

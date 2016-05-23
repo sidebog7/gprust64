@@ -23,11 +23,11 @@ impl Bus {
         }
     }
 
-    pub fn read_word(&self, addr: u32) -> Instruction {
+    pub fn read_word(&self, addr: u32) -> u32 {
         if addr >= 0x1fc0_0000 && addr < 0x1fc0_07c0 {
             let rel_addr = addr - 0x1fc0_0000;
 
-            Instruction::new(BigEndian::read_u32(&self.pifrom[rel_addr as usize..]))
+            BigEndian::read_u32(&self.pifrom[rel_addr as usize..])
 
         } else {
             panic!("Unrecognised physical address {:#x}", addr);
