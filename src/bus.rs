@@ -1,9 +1,9 @@
 use super::byteorder::{BigEndian, ByteOrder};
 use cpu::Instruction;
+use super::memory_map::*;
 use super::rsp::Rsp;
 use std::fmt;
 
-const PIF_ROM_SIZE: usize = 2048;
 const RAM_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct Bus {
@@ -27,8 +27,8 @@ impl Bus {
     }
 
     pub fn read_word(&self, addr: u32) -> u32 {
-        if addr >= 0x1fc0_0000 && addr < 0x1fc0_07c0 {
-            let rel_addr = addr - 0x1fc0_0000;
+        if addr >= PIF_ROM_START && addr < PIF_ROM_END {
+            let rel_addr = addr - PIF_ROM_START;
 
             BigEndian::read_u32(&self.pifrom[rel_addr as usize..])
 

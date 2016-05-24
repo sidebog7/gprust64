@@ -4,6 +4,7 @@ mod n64;
 mod cpu;
 mod bus;
 mod rsp;
+mod memory_map;
 
 use std::env;
 use std::fs;
