@@ -1,5 +1,6 @@
 use super::byteorder::{BigEndian, ByteOrder};
 use cpu::Instruction;
+use super::rsp::Rsp;
 use std::fmt;
 
 const PIF_ROM_SIZE: usize = 2048;
@@ -8,6 +9,7 @@ const RAM_SIZE: usize = 4 * 1024 * 1024;
 pub struct Bus {
     pifrom: Vec<u8>,
     ram: Vec<u16>,
+    rsp: Rsp,
 }
 
 impl fmt::Debug for Bus {
@@ -20,6 +22,7 @@ impl Bus {
         Bus {
             pifrom: pifrom,
             ram: vec![0; RAM_SIZE],
+            rsp: Rsp::default(),
         }
     }
 
@@ -30,7 +33,10 @@ impl Bus {
             BigEndian::read_u32(&self.pifrom[rel_addr as usize..])
 
         } else {
-            panic!("Unrecognised physical address {:#x}", addr);
+            match addr {
+                SP_STATUS_REG => self.rsp.read_status_reg(),
+                _ => panic!("Unrecognised physical address {:#x}", addr),
+            }
         }
     }
 }
