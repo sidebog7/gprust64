@@ -1,4 +1,7 @@
 extern crate byteorder;
+#[macro_use]
+extern crate enum_primitive;
+extern crate num;
 
 mod n64;
 mod cpu;
@@ -21,10 +24,9 @@ fn main() {
     let mut n64 = n64::N64::new(pif);
     n64.power_on_reset();
     loop {
-        println!("N64 {:#?}", &n64);
+        // println!("N64 {:#?}", &n64);
         n64.run_instruction();
     }
-
 }
 
 

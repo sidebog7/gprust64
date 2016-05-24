@@ -1,5 +1,4 @@
 use super::byteorder::{BigEndian, ByteOrder};
-use cpu::Instruction;
 use super::memory_map::*;
 use super::rsp::Rsp;
 use std::fmt;

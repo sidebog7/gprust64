@@ -1,6 +1,7 @@
 use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
+use super::opcode::Opcode;
 
 use std::fmt;
 
@@ -64,54 +65,59 @@ impl Cpu {
 
     pub fn run_instruction(&mut self) {
         let instruction = self.read_instruction(self.reg_pc);
-
-
-        let opcode = instruction.get_opcode();
-        let rs = instruction.get_bits(21, 5);
-        let rt = instruction.get_bits(16, 5);
-        let imval = instruction.get_immediate();
-
-        match opcode {
-            0b010000 => {
+        self.reg_pc += 4;
+        println!("Instruction {:?}", instruction);
+        match instruction.opcode() {
+            Opcode::MTC0 => {
                 // MTC0
-                let rd = instruction.get_bits(11, 5);
+                let rt = instruction.target_register();
+                let rd = instruction.destination();
                 let data = self.read_gpr(rt as usize);
                 self.cp0.write_reg(rd, data);
             }
-            0b001101 => {
-                // ORI
-                let res = self.read_gpr(rs as usize) | (imval as u64);
-                self.write_gpr(rt as usize, res);
+            Opcode::ANDI => {
+                // ANDI
+                let res = self.read_gpr(instruction.source() as usize) &
+                          (instruction.immediate() as u64);
+                self.write_gpr(instruction.target_immediate() as usize, res);
             }
-            0b001111 => {
+            Opcode::ORI => {
+                // ORI
+                let res = self.read_gpr(instruction.source() as usize) |
+                          (instruction.immediate() as u64);
+                self.write_gpr(instruction.target_immediate() as usize, res);
+            }
+            Opcode::LUI => {
                 // LUI
                 // assume 32 bit mode
-                self.write_gpr(rt as usize, (((imval as u32) << 16) as i32) as u64);
+                self.write_gpr(instruction.target_immediate() as usize,
+                               (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
-            0b100011 => {
+            Opcode::BEQL => {
+                // BEQL
+                if self.read_gpr(instruction.source() as usize) ==
+                   self.read_gpr(instruction.target_immediate() as usize) {
+                    let offset = (instruction.immediate().wrapping_shl(2) as i16) as u64;
+                    self.reg_pc = self.reg_pc.wrapping_add(offset);
+                    panic!("BRANCH {:#x}, {:#x}", offset, self.reg_pc);
+                }
+            }
+            Opcode::LW => {
                 // LW
-                let base = self.read_gpr(rs as usize);
-                let vaddr = base.wrapping_add((instruction.get_immediate() as i16) as u64);
+                let base = self.read_gpr(instruction.source() as usize);
+                let vaddr = base.wrapping_add((instruction.immediate() as i16) as u64);
                 if vaddr & 0b11 != 0 {
                     panic!("Address error exception");
                 }
-                panic!("Word {:#x}, base {:#x}, vaddr: {:#x}, imval: {:#x}",
-                       instruction,
-                       base,
-                       vaddr,
-                       imval);
+
                 let word = self.read_word(vaddr);
                 let mem = (word as i32) as u64;
-                self.write_gpr(rt as usize, mem);
+                self.write_gpr(instruction.target_immediate() as usize, mem);
 
 
-            }
-            _ => {
-                panic!("Unrecognised instruction {:#x}", instruction);
             }
         }
 
-        self.reg_pc += 4;
     }
 
     fn read_word(&self, addr: u64) -> u32 {
@@ -120,7 +126,7 @@ impl Cpu {
     }
 
     fn read_instruction(&self, addr: u64) -> Instruction {
-        Instruction::new(self.read_word(addr))
+        Instruction(self.read_word(addr))
     }
 
     fn write_gpr(&mut self, index: usize, value: u64) {
