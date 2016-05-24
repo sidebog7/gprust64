@@ -19,6 +19,10 @@ impl Instruction {
         self.get_bits(0, 16) as u16
     }
 
+    pub fn immediate_extend(&self) -> u64 {
+        (self.immediate() as i16) as u64
+    }
+
     pub fn source(&self) -> u8 {
         self.get_bits(21, 5) as u8
     }

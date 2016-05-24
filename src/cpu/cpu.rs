@@ -66,45 +66,82 @@ impl Cpu {
     pub fn run_instruction(&mut self) {
         let instruction = self.read_instruction(self.reg_pc);
         self.reg_pc += 4;
-        println!("Instruction {:?}", instruction);
+        println!("PC: {:#x} {:?}", self.reg_pc, instruction);
+
+        self.execute_instruction(instruction);
+    }
+
+    fn execute_instruction(&mut self, instruction: Instruction) {
         match instruction.opcode() {
+            Opcode::ADDI => {
+                let rs_val = self.read_gpr(instruction.source());
+                self.write_gpr(instruction.target_immediate(), {
+
+                    let rs_positive = (rs_val >> 31) & 1 == 0;
+                    let imm = instruction.immediate_extend();
+                    let imm_positive = (imm >> 31) & 1 == 0;
+                    let res = rs_val.wrapping_add(imm);
+                    let res_positive = (res >> 31 & 1) == 0;
+                    match (rs_positive, imm_positive, res_positive) {
+                        (true, true, false) => {
+                            panic!("Integer overflow exception not implemented! (pp=n) {:016X}  \
+                                    {:016X} != {:016X}",
+                                   res,
+                                   imm,
+                                   res);
+                        }
+                        (false, false, true) => {
+                            panic!("Integer overflow exception not implemented! (nn=p) {:016X}  \
+                                    {:016X} != {:016X}",
+                                   res,
+                                   imm,
+                                   res);
+                        }
+                        _ => {}
+                    };
+                    res
+                });
+            }
+            Opcode::ADDIU => {
+                let res = self.read_gpr(instruction.source())
+                    .wrapping_add((instruction.immediate_extend()));
+                self.write_gpr(instruction.target_immediate(), res);
+            }
             Opcode::MTC0 => {
                 // MTC0
                 let rt = instruction.target_register();
                 let rd = instruction.destination();
-                let data = self.read_gpr(rt as usize);
+                let data = self.read_gpr(rt);
                 self.cp0.write_reg(rd, data);
             }
             Opcode::ANDI => {
                 // ANDI
-                let res = self.read_gpr(instruction.source() as usize) &
-                          (instruction.immediate() as u64);
-                self.write_gpr(instruction.target_immediate() as usize, res);
+                let res = self.read_gpr(instruction.source()) & (instruction.immediate() as u64);
+                self.write_gpr(instruction.target_immediate(), res);
             }
             Opcode::ORI => {
                 // ORI
-                let res = self.read_gpr(instruction.source() as usize) |
-                          (instruction.immediate() as u64);
-                self.write_gpr(instruction.target_immediate() as usize, res);
+                let res = self.read_gpr(instruction.source()) | (instruction.immediate() as u64);
+                self.write_gpr(instruction.target_immediate(), res);
             }
             Opcode::LUI => {
                 // LUI
                 // assume 32 bit mode
-                self.write_gpr(instruction.target_immediate() as usize,
+                self.write_gpr(instruction.target_immediate(),
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
             Opcode::BEQL => {
                 // BEQL
-                if self.read_gpr(instruction.source() as usize) ==
-                   self.read_gpr(instruction.target_immediate() as usize) {
-                    let offset = (instruction.immediate().wrapping_shl(2) as i16) as u64;
+                if self.read_gpr(instruction.source()) ==
+                   self.read_gpr(instruction.target_immediate()) {
+                    let offset = ((instruction.immediate() << 2) as i16) as u64;
                     self.reg_pc = self.reg_pc.wrapping_add(offset);
                     panic!("BRANCH {:#x}, {:#x}", offset, self.reg_pc);
                 }
             }
             Opcode::LW => {
                 // LW
-                let base = self.read_gpr(instruction.source() as usize);
+                let base = self.read_gpr(instruction.source());
                 let vaddr = base.wrapping_add((instruction.immediate() as i16) as u64);
                 if vaddr & 0b11 != 0 {
                     panic!("Address error exception");
@@ -112,7 +149,7 @@ impl Cpu {
 
                 let word = self.read_word(vaddr);
                 let mem = (word as i32) as u64;
-                self.write_gpr(instruction.target_immediate() as usize, mem);
+                self.write_gpr(instruction.target_immediate(), mem);
 
 
             }
@@ -129,16 +166,16 @@ impl Cpu {
         Instruction(self.read_word(addr))
     }
 
-    fn write_gpr(&mut self, index: usize, value: u64) {
+    fn write_gpr(&mut self, index: u8, value: u64) {
         if index != 0 {
-            self.reg_gprs[index] = value;
+            self.reg_gprs[index as usize] = value;
         }
     }
 
-    fn read_gpr(&self, index: usize) -> u64 {
+    fn read_gpr(&self, index: u8) -> u64 {
         match index {
             0 => 0,
-            _ => self.reg_gprs[index],
+            _ => self.reg_gprs[index as usize],
         }
     }
 }
