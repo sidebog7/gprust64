@@ -35,7 +35,7 @@ impl Cpu {
             reg_gprs: [0; NUM_GPREG],
             reg_fprs: [0.0; NUM_FPREG],
 
-            reg_pc: 0,
+            reg_pc: PIF_ROM_START,
 
             reg_hi: 0,
             reg_lo: 0,
@@ -49,12 +49,6 @@ impl Cpu {
 
             bus: bus,
         }
-    }
-
-    pub fn power_on_reset(&mut self) {
-        self.cp0.power_on_reset();
-
-        self.reg_pc = PIF_ROM_START;
     }
 
     pub fn run(&mut self) {

@@ -7,13 +7,6 @@ pub struct RegConfig {
     kseg0_coherency_algorithm: CoherencyAlgorithm,
 }
 
-impl RegConfig {
-    pub fn power_on_reset(&mut self) {
-        self.transfer_data_pattern = TransferDataPattern::D;
-        self.endianness = Endianness::BigEndian;
-    }
-}
-
 impl From<u32> for RegConfig {
     fn from(data: u32) -> Self {
         RegConfig {
