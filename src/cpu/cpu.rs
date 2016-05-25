@@ -160,6 +160,7 @@ impl Cpu {
                 }
                 let value = self.read_gpr(instruction.target_immediate()) as u32;
                 self.write_word(vaddr, value);
+                println!("{:?}", self);
             }
         }
 
@@ -170,7 +171,7 @@ impl Cpu {
         self.bus.read_word(paddr as u32)
     }
 
-    fn write_word(&self, addr: u64, value: u32) {
+    fn write_word(&mut self, addr: u64, value: u32) {
         let paddr = vaddr_to_paddr(addr);
         self.bus.write_word(paddr as u32, value);
     }

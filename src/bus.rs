@@ -13,7 +13,7 @@ pub struct Bus {
 
 impl fmt::Debug for Bus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Bus")
+        write!(f, "RSP: {:#?}", self.rsp)
     }
 }
 impl Bus {
@@ -21,21 +21,21 @@ impl Bus {
         Bus {
             pifrom: pifrom,
             ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
-            rsp: Rsp::default(),
+            rsp: Rsp::new(),
         }
     }
 
     pub fn read_word(&self, addr: u32) -> u32 {
         match map_addr(addr) {
             Addr::PIFROM(rel_addr) => BigEndian::read_u32(&self.pifrom[rel_addr as usize..]),
-            Addr::SPSTATUSREG => self.rsp.read_status_reg(),
+            Addr::RSP(rel_addr) => self.rsp.read(rel_addr),
         }
     }
 
-    pub fn write_word(&self, addr: u32, value: u32) {
+    pub fn write_word(&mut self, addr: u32, value: u32) {
         match map_addr(addr) {
             Addr::PIFROM(_) => panic!("Cannot write to PIF ROM"),
-            Addr::SPSTATUSREG => self.rsp.write_status_reg(value),
+            Addr::RSP(rel_addr) => self.rsp.write(rel_addr, value),
         }
     }
 }

@@ -1,4 +1,3 @@
-use num::FromPrimitive;
 
 enum_from_primitive! {
 #[derive(Debug)]
