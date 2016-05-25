@@ -3,6 +3,7 @@ use super::memory_map::*;
 use super::interface::rsp::Rsp;
 use super::interface::peripheral::Peripheral;
 use super::interface::video::Video;
+use super::interface::audio::Audio;
 use std::fmt;
 
 const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -13,6 +14,7 @@ pub struct Bus {
     rsp: Rsp,
     pi: Peripheral,
     vi: Video,
+    ai: Audio,
 }
 
 impl fmt::Debug for Bus {
@@ -28,6 +30,7 @@ impl Bus {
             rsp: Rsp::new(),
             pi: Peripheral::default(),
             vi: Video::default(),
+            ai: Audio::default(),
         }
     }
 
@@ -37,6 +40,7 @@ impl Bus {
             Addr::RSP(rel_addr) => self.rsp.read(rel_addr),
             Addr::PERIPHERAL(rel_addr) => self.pi.read(rel_addr),
             Addr::VIDEO(rel_addr) => self.vi.read(rel_addr),
+            Addr::AUDIO(rel_addr) => self.ai.read(rel_addr),
         }
     }
 
@@ -46,6 +50,7 @@ impl Bus {
             Addr::RSP(rel_addr) => self.rsp.write(rel_addr, value),
             Addr::PERIPHERAL(rel_addr) => self.pi.write(rel_addr, value),
             Addr::VIDEO(rel_addr) => self.vi.write(rel_addr, value),
+            Addr::AUDIO(rel_addr) => self.ai.write(rel_addr, value),
         }
     }
 }
