@@ -1,6 +1,6 @@
 const PI_STATUS_REG: u32 = 0x10;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Peripheral {
     dma_busy: bool,
     io_busy: bool,
@@ -8,13 +8,6 @@ pub struct Peripheral {
 }
 
 impl Peripheral {
-    pub fn new() -> Peripheral {
-        Peripheral {
-            dma_busy: false,
-            io_busy: false,
-            error: false,
-        }
-    }
     pub fn read(&self, addr: u32) -> u32 {
         match addr {
             PI_STATUS_REG => self.read_status_reg(),
