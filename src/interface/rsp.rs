@@ -72,7 +72,6 @@ impl Rsp {
     }
 
     fn write_status_reg(&mut self, value: u32) {
-        println!("WRITING {:#b}", value);
         if value & 1 << 0 != 0 {
             self.halt = false;
         }

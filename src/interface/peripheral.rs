@@ -24,6 +24,7 @@ impl Peripheral {
 
     pub fn write(&mut self, addr: u32, value: u32) {
         match addr {
+            PI_STATUS_REG => self.write_status_reg(value),
             _ => {
                 panic!("Cannot write to register in Peripheral {:#x} <- {:#x}",
                        addr,
@@ -45,6 +46,15 @@ impl Peripheral {
                 temp = temp | 1 << 2;
             }
             temp
+        }
+    }
+
+    fn write_status_reg(&mut self, value: u32) {
+        if value & (1 << 0) != 0 {
+            println!("PI reset not implemented");
+        }
+        if value & (1 << 1) != 0 {
+            println!("PI clear not implemented");
         }
     }
 }

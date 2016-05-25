@@ -145,7 +145,6 @@ impl Cpu {
                 }
                 let value = self.read_gpr(instruction.target_immediate()) as u32;
                 self.write_word(vaddr, value);
-                println!("{:?}", self);
             }
         }
 
