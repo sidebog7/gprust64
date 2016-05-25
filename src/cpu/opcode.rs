@@ -9,6 +9,7 @@ pub enum Opcode {
     ORI = 0b001101,
     LUI = 0b001111,
     BEQL = 0b010100,
+    BNEL = 0b010101,
     LW = 0b100011,
     SW = 0b101011,
 }

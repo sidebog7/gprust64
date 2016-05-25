@@ -103,41 +103,26 @@ impl Cpu {
                 self.write_gpr(instruction.target_immediate(), res);
             }
             Opcode::MTC0 => {
-                // MTC0
                 let rt = instruction.target_register();
                 let rd = instruction.destination();
                 let data = self.read_gpr(rt);
                 self.cp0.write_reg(rd, data);
             }
             Opcode::ANDI => {
-                // ANDI
                 let res = self.read_gpr(instruction.source()) & (instruction.immediate() as u64);
                 self.write_gpr(instruction.target_immediate(), res);
             }
             Opcode::ORI => {
-                // ORI
                 let res = self.read_gpr(instruction.source()) | (instruction.immediate() as u64);
                 self.write_gpr(instruction.target_immediate(), res);
             }
             Opcode::LUI => {
-                // LUI
                 // assume 32 bit mode
                 self.write_gpr(instruction.target_immediate(),
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
-            Opcode::BEQL => {
-                // BEQL
-                if self.read_gpr(instruction.source()) ==
-                   self.read_gpr(instruction.target_immediate()) {
-                    let old_pc = self.reg_pc;
-                    let offset = ((instruction.immediate() << 2) as i16) as u64;
-                    self.reg_pc = self.reg_pc.wrapping_add(offset);
-                    let delay_instruction = self.read_instruction(old_pc);
-                    self.execute_instruction(delay_instruction);
-                } else {
-                    self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
-                }
-            }
+            Opcode::BEQL => self.branch(instruction, |rs, rt| rs == rt),
+            Opcode::BNEL => self.branch(instruction, |rs, rt| rs != rt),
             Opcode::LW => {
                 // LW
                 let base = self.read_gpr(instruction.source());
@@ -164,6 +149,22 @@ impl Cpu {
             }
         }
 
+    }
+
+    fn branch<F>(&mut self, instruction: Instruction, f: F)
+        where F: FnOnce(u64, u64) -> bool
+    {
+        let rs = self.read_gpr(instruction.source());
+        let rt = self.read_gpr(instruction.target_immediate());
+        if f(rs, rt) {
+            let old_pc = self.reg_pc;
+            let offset = ((instruction.immediate() << 2) as i16) as u64;
+            self.reg_pc = self.reg_pc.wrapping_add(offset);
+            let delay_instruction = self.read_instruction(old_pc);
+            self.execute_instruction(delay_instruction);
+        } else {
+            self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
+        }
     }
 
     fn read_word(&self, addr: u64) -> u32 {
