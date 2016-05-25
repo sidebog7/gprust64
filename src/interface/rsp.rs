@@ -1,6 +1,9 @@
-use super::memory_map::*;
 
-#[derive(Default, Debug)]
+const SP_STATUS_REG: u32 = 0x10;
+const SP_DMA_FULL_REG: u32 = 0x14;
+const SP_DMA_BUSY_REG: u32 = 0x18;
+
+#[derive(Debug)]
 pub struct Rsp {
     halt: bool,
     broke: bool,
@@ -50,25 +53,25 @@ impl Rsp {
         }
     }
 
-    pub fn read_dma_full_reg(&self) -> u32 {
+    fn read_dma_full_reg(&self) -> u32 {
         if self.dma_full {
             1
         } else {
             0
         }
     }
-    pub fn read_dma_busy_reg(&self) -> u32 {
+    fn read_dma_busy_reg(&self) -> u32 {
         if self.dma_busy {
             1
         } else {
             0
         }
     }
-    pub fn read_status_reg(&self) -> u32 {
+    fn read_status_reg(&self) -> u32 {
         1 // TODO too similar to getRandomNumber() [https://xkcd.com/221/]
     }
 
-    pub fn write_status_reg(&mut self, value: u32) {
+    fn write_status_reg(&mut self, value: u32) {
         println!("WRITING {:#b}", value);
         if value & 1 << 0 != 0 {
             self.halt = false;

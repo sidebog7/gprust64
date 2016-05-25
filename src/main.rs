@@ -6,7 +6,7 @@ extern crate num;
 mod n64;
 mod cpu;
 mod bus;
-mod rsp;
+mod interface;
 mod memory_map;
 
 use std::env;
