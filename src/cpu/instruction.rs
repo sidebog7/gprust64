@@ -2,6 +2,8 @@ use std::fmt;
 use num::FromPrimitive;
 use super::opcode::Opcode;
 
+pub const INSTRUCTION_SIZE: u8 = 4;
+
 #[derive(Clone, Copy)]
 pub struct Instruction(pub u32);
 

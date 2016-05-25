@@ -5,4 +5,6 @@ impl Rsp {
     pub fn read_status_reg(&self) -> u32 {
         1 // TODO too similar to getRandomNumber() [https://xkcd.com/221/]
     }
+
+    pub fn write_status_reg(&self, value: u32) {}
 }

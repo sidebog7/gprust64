@@ -26,16 +26,16 @@ impl Bus {
     }
 
     pub fn read_word(&self, addr: u32) -> u32 {
-        if addr >= PIF_ROM_START && addr < PIF_ROM_END {
-            let rel_addr = addr - PIF_ROM_START;
+        match map_addr(addr) {
+            Addr::PIFROM(rel_addr) => BigEndian::read_u32(&self.pifrom[rel_addr as usize..]),
+            Addr::SPSTATUSREG => self.rsp.read_status_reg(),
+        }
+    }
 
-            BigEndian::read_u32(&self.pifrom[rel_addr as usize..])
-
-        } else {
-            match addr {
-                SP_STATUS_REG => self.rsp.read_status_reg(),
-                _ => panic!("Unrecognised physical address {:#x}", addr),
-            }
+    pub fn write_word(&self, addr: u32, value: u32) {
+        match map_addr(addr) {
+            Addr::PIFROM(_) => panic!("Cannot write to PIF ROM"),
+            Addr::SPSTATUSREG => self.rsp.write_status_reg(value),
         }
     }
 }

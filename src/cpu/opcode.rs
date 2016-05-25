@@ -11,5 +11,6 @@ pub enum Opcode {
     LUI = 0b001111,
     BEQL = 0b010100,
     LW = 0b100011,
+    SW = 0b101011,
 }
 }

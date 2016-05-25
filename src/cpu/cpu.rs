@@ -1,6 +1,7 @@
 use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
+use super::instruction::INSTRUCTION_SIZE;
 use super::opcode::Opcode;
 
 use std::fmt;
@@ -59,7 +60,7 @@ impl Cpu {
 
     pub fn run_instruction(&mut self) {
         let instruction = self.read_instruction(self.reg_pc);
-        self.reg_pc += 4;
+        self.reg_pc += INSTRUCTION_SIZE as u64;
         println!("PC: {:#x} {:?}", self.reg_pc, instruction);
 
         self.execute_instruction(instruction);
@@ -128,9 +129,13 @@ impl Cpu {
                 // BEQL
                 if self.read_gpr(instruction.source()) ==
                    self.read_gpr(instruction.target_immediate()) {
+                    let old_pc = self.reg_pc;
                     let offset = ((instruction.immediate() << 2) as i16) as u64;
                     self.reg_pc = self.reg_pc.wrapping_add(offset);
-                    panic!("BRANCH {:#x}, {:#x}", offset, self.reg_pc);
+                    let delay_instruction = self.read_instruction(old_pc);
+                    self.execute_instruction(delay_instruction);
+                } else {
+                    self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
                 }
             }
             Opcode::LW => {
@@ -147,6 +152,15 @@ impl Cpu {
 
 
             }
+            Opcode::SW => {
+                let base = self.read_gpr(instruction.source());
+                let vaddr = base.wrapping_add((instruction.immediate() as i16) as u64);
+                if vaddr & 0b11 != 0 {
+                    panic!("Address error exception");
+                }
+                let value = self.read_gpr(instruction.target_immediate()) as u32;
+                self.write_word(vaddr, value);
+            }
         }
 
     }
@@ -154,6 +168,11 @@ impl Cpu {
     fn read_word(&self, addr: u64) -> u32 {
         let paddr = vaddr_to_paddr(addr);
         self.bus.read_word(paddr as u32)
+    }
+
+    fn write_word(&self, addr: u64, value: u32) {
+        let paddr = vaddr_to_paddr(addr);
+        self.bus.write_word(paddr as u32, value);
     }
 
     fn read_instruction(&self, addr: u64) -> Instruction {
