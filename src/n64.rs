@@ -7,7 +7,7 @@ pub struct N64 {
 }
 
 impl N64 {
-    pub fn new(pifrom: Vec<u8>) -> N64 {
+    pub fn new(pifrom: Box<[u8]>) -> N64 {
         let bus = bus::Bus::new(pifrom);
         let cpu = cpu::Cpu::new(bus);
 

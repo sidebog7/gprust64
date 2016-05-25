@@ -6,8 +6,8 @@ use std::fmt;
 const RAM_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct Bus {
-    pifrom: Vec<u8>,
-    ram: Vec<u16>,
+    pifrom: Box<[u8]>,
+    ram: Box<[u16]>,
     rsp: Rsp,
 }
 
@@ -17,10 +17,10 @@ impl fmt::Debug for Bus {
     }
 }
 impl Bus {
-    pub fn new(pifrom: Vec<u8>) -> Bus {
+    pub fn new(pifrom: Box<[u8]>) -> Bus {
         Bus {
             pifrom: pifrom,
-            ram: vec![0; RAM_SIZE],
+            ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
             rsp: Rsp::default(),
         }
     }
