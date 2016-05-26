@@ -18,14 +18,17 @@ impl Instruction {
     pub fn opcode(&self) -> Opcode {
         let opcode = self.get_bits(26, 6) as u8;
         Opcode::from_u8(opcode)
-            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#b}", self, opcode))
+            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#08b}", self, opcode))
     }
 
     #[inline(always)]
     pub fn opcode_special(&self) -> OpcodeJump {
         let opcode = self.get_bits(0, 6) as u8;
-        OpcodeJump::from_u8(opcode)
-            .unwrap_or_else(|| panic!("Unrecognised special opcode {:#x} op: {:#b}", self, opcode))
+        OpcodeJump::from_u8(opcode).unwrap_or_else(|| {
+            panic!("Unrecognised special opcode {:#x} op: {:#08b}",
+                   self,
+                   opcode)
+        })
     }
 
     #[inline(always)]

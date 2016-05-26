@@ -73,6 +73,9 @@ impl Cpu {
             OpcodeJump::JR => {
                 println!("JUMPY");
                 let new_pc = self.read_gpr(instruction.source());
+                if new_pc & 0b11 != 0 {
+                    panic!("Address error exception");
+                }
                 self.change_pc(new_pc, true);
             }
         }

@@ -4,12 +4,13 @@ use super::interface::rsp::Rsp;
 use super::interface::peripheral::Peripheral;
 use super::interface::video::Video;
 use super::interface::audio::Audio;
+use super::interface::pif::Pif;
 use std::fmt;
 
 const RAM_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct Bus {
-    pifrom: Box<[u8]>,
+    pif: Pif,
     ram: Box<[u16]>,
     rsp: Rsp,
     pi: Peripheral,
@@ -25,7 +26,7 @@ impl fmt::Debug for Bus {
 impl Bus {
     pub fn new(pifrom: Box<[u8]>) -> Bus {
         Bus {
-            pifrom: pifrom,
+            pif: Pif::new(pifrom),
             ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
             rsp: Rsp::new(),
             pi: Peripheral::default(),
@@ -36,7 +37,7 @@ impl Bus {
 
     pub fn read_word(&self, addr: u32) -> u32 {
         match map_addr(addr) {
-            Addr::PIFROM(rel_addr) => BigEndian::read_u32(&self.pifrom[rel_addr as usize..]),
+            Addr::PIF(rel_addr) => self.pif.read(rel_addr),
             Addr::RSP(rel_addr) => self.rsp.read(rel_addr),
             Addr::PERIPHERAL(rel_addr) => self.pi.read(rel_addr),
             Addr::VIDEO(rel_addr) => self.vi.read(rel_addr),
@@ -46,7 +47,7 @@ impl Bus {
 
     pub fn write_word(&mut self, addr: u32, value: u32) {
         match map_addr(addr) {
-            Addr::PIFROM(_) => panic!("Cannot write to PIF ROM"),
+            Addr::PIF(rel_addr) => self.pif.write(rel_addr, value),
             Addr::RSP(rel_addr) => self.rsp.write(rel_addr, value),
             Addr::PERIPHERAL(rel_addr) => self.pi.write(rel_addr, value),
             Addr::VIDEO(rel_addr) => self.vi.write(rel_addr, value),
