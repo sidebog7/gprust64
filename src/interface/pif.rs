@@ -37,7 +37,7 @@ impl Pif {
                 panic!("Cannot write to PIF ROM");
             }
             PIF_RAM_START...PIF_RAM_END => {
-                BigEndian::write_u32(&mut self.ram[(PIF_RAM_START) as usize..], value);
+                BigEndian::write_u32(&mut self.ram[(addr - PIF_RAM_START) as usize..], value);
             }
             _ => {
                 panic!("Address out of range");
