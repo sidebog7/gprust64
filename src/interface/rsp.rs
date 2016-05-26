@@ -1,4 +1,4 @@
-use super::super::byteorder::{BigEndian, ByteOrder};
+use byteorder::{BigEndian, ByteOrder};
 
 const SP_DMEM: u32 = 0;
 const SP_IMEM_START: u32 = 0x1000;

@@ -1,4 +1,4 @@
-use super::super::byteorder::{BigEndian, ByteOrder};
+use byteorder::{BigEndian, ByteOrder};
 
 pub const PIF_ROM_START: u32 = 0x0000;
 pub const PIF_ROM_END: u32 = 0x07bf;

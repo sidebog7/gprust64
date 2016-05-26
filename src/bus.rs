@@ -1,4 +1,3 @@
-use super::byteorder::{BigEndian, ByteOrder};
 use super::memory_map::*;
 use super::interface::rsp::Rsp;
 use super::interface::peripheral::Peripheral;
