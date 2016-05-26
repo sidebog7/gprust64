@@ -60,7 +60,7 @@ impl Cpu {
 
     pub fn run_instruction(&mut self) {
         let instruction = self.read_instruction(self.reg_pc);
-        self.reg_pc += INSTRUCTION_SIZE as u64;
+        self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64);
         println!("PC: {:#x} {:?}", self.reg_pc, instruction);
 
         self.execute_instruction(instruction);
@@ -121,8 +121,11 @@ impl Cpu {
                 self.write_gpr(instruction.target_immediate(),
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
-            Opcode::BEQL => self.branch(instruction, |rs, rt| rs == rt),
-            Opcode::BNEL => self.branch(instruction, |rs, rt| rs != rt),
+            Opcode::BEQL => self.branch_likely(instruction, |rs, rt| rs == rt),
+            Opcode::BNE => {
+                let branch = self.branch(instruction, |rs, rt| rs != rt);
+            }
+            Opcode::BNEL => self.branch_likely(instruction, |rs, rt| rs != rt),
             Opcode::LW => {
                 // LW
                 let base = self.read_gpr(instruction.source());
@@ -150,20 +153,30 @@ impl Cpu {
 
     }
 
-    fn branch<F>(&mut self, instruction: Instruction, f: F)
+    fn branch_likely<F>(&mut self, instruction: Instruction, f: F)
+        where F: FnOnce(u64, u64) -> bool
+    {
+        if !self.branch(instruction, f) {
+            self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
+        }
+    }
+
+    fn branch<F>(&mut self, instruction: Instruction, f: F) -> bool
         where F: FnOnce(u64, u64) -> bool
     {
         let rs = self.read_gpr(instruction.source());
         let rt = self.read_gpr(instruction.target_immediate());
-        if f(rs, rt) {
+        let branch = f(rs, rt);
+
+        if branch {
             let old_pc = self.reg_pc;
             let offset = ((instruction.immediate() << 2) as i16) as u64;
             self.reg_pc = self.reg_pc.wrapping_add(offset);
+            println!("Branch taken {:#x}", self.reg_pc);
             let delay_instruction = self.read_instruction(old_pc);
             self.execute_instruction(delay_instruction);
-        } else {
-            self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
         }
+        branch
     }
 
     fn read_word(&self, addr: u64) -> u32 {

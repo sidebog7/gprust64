@@ -1,7 +1,8 @@
 
-const SP_STATUS_REG: u32 = 0x10;
-const SP_DMA_FULL_REG: u32 = 0x14;
-const SP_DMA_BUSY_REG: u32 = 0x18;
+const SP_STATUS_REG: u32 = 0x40010;
+const SP_DMA_FULL_REG: u32 = 0x40014;
+const SP_DMA_BUSY_REG: u32 = 0x40018;
+
 
 #[derive(Debug)]
 pub struct Rsp {

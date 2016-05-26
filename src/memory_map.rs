@@ -1,7 +1,7 @@
 pub const PIF_ROM_START: u32 = 0x1fc0_0000;
 pub const PIF_ROM_END: u32 = 0x1fc0_07bf;
 
-pub const SP_REG_BASE: u32 = 0x0404_0000;
+pub const SP_REG_BASE: u32 = 0x0400_0000;
 pub const SP_REG_END: u32 = 0x040F_FFFF;
 
 pub const PI_REG_BASE: u32 = 0x0460_0000;
