@@ -21,7 +21,7 @@ fn main() {
     let pif = load_bin(pif_file_name);
     let rom = load_bin(rom_file_name);
 
-    let mut n64 = n64::N64::new(pif);
+    let mut n64 = n64::N64::new(pif, rom);
     loop {
         // println!("N64 {:#?}", &n64);
         n64.run_instruction();

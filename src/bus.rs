@@ -5,6 +5,7 @@ use super::interface::video::Video;
 use super::interface::audio::Audio;
 use super::interface::pif::Pif;
 use super::interface::serial::Serial;
+use super::interface::cartridge::Cartridge;
 use std::fmt;
 
 const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -17,6 +18,7 @@ pub struct Bus {
     vi: Video,
     ai: Audio,
     si: Serial,
+    cd1: Cartridge,
 }
 
 impl fmt::Debug for Bus {
@@ -25,7 +27,7 @@ impl fmt::Debug for Bus {
     }
 }
 impl Bus {
-    pub fn new(pifrom: Box<[u8]>) -> Bus {
+    pub fn new(pifrom: Box<[u8]>, cartrom: Box<[u8]>) -> Bus {
         Bus {
             pif: Pif::new(pifrom),
             ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
@@ -34,6 +36,7 @@ impl Bus {
             vi: Video::default(),
             ai: Audio::default(),
             si: Serial::default(),
+            cd1: Cartridge::new(cartrom),
         }
     }
 
@@ -45,6 +48,7 @@ impl Bus {
             Addr::VIDEO(rel_addr) => self.vi.read(rel_addr),
             Addr::AUDIO(rel_addr) => self.ai.read(rel_addr),
             Addr::SERIAL(rel_addr) => self.si.read(rel_addr),
+            Addr::CARTDOM1(rel_addr) => self.cd1.read(rel_addr),
         }
     }
 
@@ -56,6 +60,7 @@ impl Bus {
             Addr::VIDEO(rel_addr) => self.vi.write(rel_addr, value),
             Addr::AUDIO(rel_addr) => self.ai.write(rel_addr, value),
             Addr::SERIAL(rel_addr) => self.si.write(rel_addr, value),
+            Addr::CARTDOM1(rel_addr) => self.cd1.write(rel_addr, value),
         }
     }
 }

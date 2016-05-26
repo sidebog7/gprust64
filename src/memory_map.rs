@@ -1,3 +1,6 @@
+pub const CARTDOM1_START: u32 = 0x1000_0000;
+pub const CARTDOM1_END: u32 = 0x1f39_ffff;
+
 pub const PIF_START: u32 = 0x1fc0_0000;
 pub const PIF_END: u32 = 0x1fc0_07ff;
 
@@ -24,11 +27,13 @@ pub enum Addr {
     VIDEO(u32),
     AUDIO(u32),
     SERIAL(u32),
+    CARTDOM1(u32),
 }
 
 
 pub fn map_addr(addr: u32) -> Addr {
     match addr {
+        CARTDOM1_START...CARTDOM1_END => Addr::CARTDOM1(addr - CARTDOM1_START),
         PIF_START...PIF_END => Addr::PIF(addr - PIF_START),
         SP_REG_BASE...SP_REG_END => Addr::RSP(addr - SP_REG_BASE),
         PI_REG_BASE...PI_REG_END => Addr::PERIPHERAL(addr - PI_REG_BASE),
