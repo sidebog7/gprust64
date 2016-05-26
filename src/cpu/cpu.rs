@@ -3,7 +3,7 @@ use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;
 use super::opcode::Opcode;
-use super::opcode::OpcodeJump;
+use super::opcode::OpcodeSpecial;
 
 use std::fmt;
 
@@ -70,7 +70,17 @@ impl Cpu {
 
     fn execute_special(&mut self, instruction: Instruction) {
         match instruction.opcode_special() {
-            OpcodeJump::JR => {
+            OpcodeSpecial::OR => {
+                let rs_val = self.read_gpr(instruction.source());
+                let rt_val = self.read_gpr(instruction.target_register());
+                self.write_gpr(instruction.destination(), rs_val | rt_val);
+            }
+            OpcodeSpecial::SRL => {
+                let res = self.read_gpr(instruction.target_immediate()) >>
+                          instruction.shift_amount();
+                self.write_gpr(instruction.destination(), res);
+            }
+            OpcodeSpecial::JR => {
                 println!("JUMPY");
                 let new_pc = self.read_gpr(instruction.source());
                 if new_pc & 0b11 != 0 {
@@ -139,6 +149,9 @@ impl Cpu {
                 // assume 32 bit mode
                 self.write_gpr(instruction.target_immediate(),
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
+            }
+            Opcode::BEQ => {
+                let branch = self.branch(instruction, |rs, rt| rs == rt);
             }
             Opcode::BEQL => self.branch_likely(instruction, |rs, rt| rs == rt),
             Opcode::BNE => {

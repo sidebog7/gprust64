@@ -9,6 +9,7 @@ enum_from_primitive! {
         ANDI = 0b001100,
         ORI = 0b001101,
         LUI = 0b001111,
+        BEQ = 0b000100,
         BEQL = 0b010100,
         BNE = 0b000101,
         BNEL = 0b010101,
@@ -19,7 +20,9 @@ enum_from_primitive! {
 
 enum_from_primitive! {
     #[derive(Debug)]
-    pub enum OpcodeJump {
+    pub enum OpcodeSpecial {
+        SRL = 0b000010,
         JR = 0b001000,
+        OR = 0b100101,
     }
 }

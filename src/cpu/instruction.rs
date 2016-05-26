@@ -1,7 +1,7 @@
 use std::fmt;
 use num::FromPrimitive;
 use super::opcode::Opcode;
-use super::opcode::OpcodeJump;
+use super::opcode::OpcodeSpecial;
 
 pub const INSTRUCTION_SIZE: u8 = 4;
 
@@ -22,9 +22,9 @@ impl Instruction {
     }
 
     #[inline(always)]
-    pub fn opcode_special(&self) -> OpcodeJump {
+    pub fn opcode_special(&self) -> OpcodeSpecial {
         let opcode = self.get_bits(0, 6) as u8;
-        OpcodeJump::from_u8(opcode).unwrap_or_else(|| {
+        OpcodeSpecial::from_u8(opcode).unwrap_or_else(|| {
             panic!("Unrecognised special opcode {:#x} op: {:#08b}",
                    self,
                    opcode)
@@ -52,6 +52,11 @@ impl Instruction {
     }
 
     #[inline(always)]
+    pub fn shift_amount(&self) -> u8 {
+        self.get_bits(6, 5) as u8
+    }
+
+    #[inline(always)]
     pub fn target_immediate(&self) -> u8 {
         self.get_bits(16, 5) as u8
     }
@@ -69,7 +74,11 @@ impl Instruction {
 
 impl fmt::Debug for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Opcode: {:?}", self.opcode())
+        write!(f, "Opcode: {:?}", self.opcode()).unwrap();
+        match self.opcode() {
+            Opcode::SPECIAL => write!(f, ", Special: {:?}", self.opcode_special()),
+            _ => write!(f, ""),
+        }
     }
 }
 
