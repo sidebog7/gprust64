@@ -3,6 +3,7 @@ use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;
 use super::opcode::Opcode;
+use super::opcode::OpcodeJump;
 
 use std::fmt;
 
@@ -66,8 +67,21 @@ impl Cpu {
         self.execute_instruction(instruction);
     }
 
+    fn execute_special(&mut self, instruction: Instruction) {
+        match instruction.opcode_jump() {
+            OpcodeJump::JR => {
+                println!("JUMPY");
+                let new_pc = self.read_gpr(instruction.source());
+                self.change_pc(new_pc, true);
+            }
+        }
+    }
+
     fn execute_instruction(&mut self, instruction: Instruction) {
         match instruction.opcode() {
+            Opcode::SPECIAL => {
+                self.execute_special(instruction);
+            }
             Opcode::ADDI => {
                 let rs_val = self.read_gpr(instruction.source());
                 self.write_gpr(instruction.target_immediate(), {
@@ -153,6 +167,14 @@ impl Cpu {
 
     }
 
+    fn change_pc(&mut self, new_address: u64, with_delay: bool) {
+        let delay_instuction = self.read_instruction(self.reg_pc);
+        self.reg_pc = new_address;
+        if with_delay {
+            self.execute_instruction(delay_instuction);
+        }
+    }
+
     fn branch_likely<F>(&mut self, instruction: Instruction, f: F)
         where F: FnOnce(u64, u64) -> bool
     {
@@ -169,12 +191,9 @@ impl Cpu {
         let branch = f(rs, rt);
 
         if branch {
-            let old_pc = self.reg_pc;
-            let offset = ((instruction.immediate() << 2) as i16) as u64;
-            self.reg_pc = self.reg_pc.wrapping_add(offset);
-            println!("Branch taken {:#x}", self.reg_pc);
-            let delay_instruction = self.read_instruction(old_pc);
-            self.execute_instruction(delay_instruction);
+            let new_pc = self.reg_pc
+                .wrapping_add(((instruction.immediate() << 2) as i16) as u64);
+            self.change_pc(new_pc, true);
         }
         branch
     }

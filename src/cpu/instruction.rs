@@ -1,6 +1,7 @@
 use std::fmt;
 use num::FromPrimitive;
 use super::opcode::Opcode;
+use super::opcode::OpcodeJump;
 
 pub const INSTRUCTION_SIZE: u8 = 4;
 
@@ -13,8 +14,13 @@ impl Instruction {
     }
 
     pub fn opcode(&self) -> Opcode {
-        Opcode::from_u8(self.get_bits(26, 6) as u8)
-            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x}", self.0))
+        let opcode = self.get_bits(26, 6) as u8;
+        Opcode::from_u8(opcode).unwrap_or_else(|| panic!("Unrecognised opcode {:#x}", opcode))
+    }
+
+    pub fn opcode_jump(&self) -> OpcodeJump {
+        let opcode = self.get_bits(0, 6) as u8;
+        OpcodeJump::from_u8(opcode).unwrap_or_else(|| panic!("Unrecognised opcode {:#x}", opcode))
     }
 
     pub fn immediate(&self) -> u16 {
