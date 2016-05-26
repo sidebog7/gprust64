@@ -78,7 +78,7 @@ impl Cpu {
             OpcodeSpecial::SRL => {
                 let res = self.read_gpr(instruction.target_immediate()) >>
                           instruction.shift_amount();
-                self.write_gpr(instruction.destination(), res);
+                self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
             OpcodeSpecial::JR => {
                 println!("JUMPY");
