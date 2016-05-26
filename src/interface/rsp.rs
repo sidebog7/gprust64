@@ -70,7 +70,6 @@ impl Rsp {
     }
 
     fn write_imem(&mut self, addr: u32, value: u32) {
-        println!("Write {:#x} to {:#x}", value, addr);
         BigEndian::write_u32(&mut self.imem[addr as usize..], value);
     }
 

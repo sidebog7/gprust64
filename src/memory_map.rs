@@ -14,12 +14,16 @@ pub const VI_REG_END: u32 = 0x044F_FFFF;
 pub const AI_REG_BASE: u32 = 0x0450_0000;
 pub const AI_REG_END: u32 = 0x045F_FFFF;
 
+pub const SI_REG_BASE: u32 = 0x0480_0000;
+pub const SI_REG_END: u32 = 0x048F_FFFF;
+
 pub enum Addr {
     PIF(u32),
     RSP(u32),
     PERIPHERAL(u32),
     VIDEO(u32),
     AUDIO(u32),
+    SERIAL(u32),
 }
 
 
@@ -30,6 +34,7 @@ pub fn map_addr(addr: u32) -> Addr {
         PI_REG_BASE...PI_REG_END => Addr::PERIPHERAL(addr - PI_REG_BASE),
         VI_REG_BASE...VI_REG_END => Addr::VIDEO(addr - VI_REG_BASE),
         AI_REG_BASE...AI_REG_END => Addr::AUDIO(addr - AI_REG_BASE),
+        SI_REG_BASE...SI_REG_END => Addr::SERIAL(addr - SI_REG_BASE),
         _ => panic!("Unrecognised physical address {:#x}", addr),
     }
 }

@@ -4,6 +4,7 @@ use super::interface::peripheral::Peripheral;
 use super::interface::video::Video;
 use super::interface::audio::Audio;
 use super::interface::pif::Pif;
+use super::interface::serial::Serial;
 use std::fmt;
 
 const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -15,6 +16,7 @@ pub struct Bus {
     pi: Peripheral,
     vi: Video,
     ai: Audio,
+    si: Serial,
 }
 
 impl fmt::Debug for Bus {
@@ -31,6 +33,7 @@ impl Bus {
             pi: Peripheral::default(),
             vi: Video::default(),
             ai: Audio::default(),
+            si: Serial::default(),
         }
     }
 
@@ -41,6 +44,7 @@ impl Bus {
             Addr::PERIPHERAL(rel_addr) => self.pi.read(rel_addr),
             Addr::VIDEO(rel_addr) => self.vi.read(rel_addr),
             Addr::AUDIO(rel_addr) => self.ai.read(rel_addr),
+            Addr::SERIAL(rel_addr) => self.si.read(rel_addr),
         }
     }
 
@@ -51,6 +55,7 @@ impl Bus {
             Addr::PERIPHERAL(rel_addr) => self.pi.write(rel_addr, value),
             Addr::VIDEO(rel_addr) => self.vi.write(rel_addr, value),
             Addr::AUDIO(rel_addr) => self.ai.write(rel_addr, value),
+            Addr::SERIAL(rel_addr) => self.si.write(rel_addr, value),
         }
     }
 }
