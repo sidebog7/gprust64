@@ -61,14 +61,15 @@ impl Cpu {
 
     pub fn run_instruction(&mut self) {
         let instruction = self.read_instruction(self.reg_pc);
-        self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64);
-        println!("PC: {:#x} {:?}", self.reg_pc, instruction);
+        println!("PC: {:#x}", self.reg_pc);
+        let new_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64);
+        self.change_pc(new_pc, false);
 
         self.execute_instruction(instruction);
     }
 
     fn execute_special(&mut self, instruction: Instruction) {
-        match instruction.opcode_jump() {
+        match instruction.opcode_special() {
             OpcodeJump::JR => {
                 println!("JUMPY");
                 let new_pc = self.read_gpr(instruction.source());
@@ -78,6 +79,7 @@ impl Cpu {
     }
 
     fn execute_instruction(&mut self, instruction: Instruction) {
+        println!("Instr: {:?}", instruction);
         match instruction.opcode() {
             Opcode::SPECIAL => {
                 self.execute_special(instruction);
@@ -209,6 +211,7 @@ impl Cpu {
     }
 
     fn read_instruction(&self, addr: u64) -> Instruction {
+
         Instruction(self.read_word(addr))
     }
 
