@@ -4,7 +4,7 @@ pub struct RegConfig {
     transfer_data_pattern: TransferDataPattern,
     endianness: Endianness,
     cu: bool,
-    kseg0_coherency_algorithm: CoherencyAlgorithm,
+    kseg0_cache_bits: [bool; 3],
 }
 
 impl From<u32> for RegConfig {
@@ -13,8 +13,26 @@ impl From<u32> for RegConfig {
             transfer_data_pattern: data.into(),
             endianness: data.into(),
             cu: (data >> 3) & 0b1 != 0,
-            kseg0_coherency_algorithm: data.into(),
+            kseg0_cache_bits: [(data & (1 << 0)) != 0,
+                               (data & (1 << 1)) != 0,
+                               (data & (1 << 2)) != 0],
         }
+    }
+}
+
+impl RegConfig {
+    fn get_kseg0_coherency_algorithm(&self) -> CoherencyAlgorithm {
+        let mut cache_value = 0;
+        if self.kseg0_cache_bits[0] {
+            cache_value |= 1 << 0;
+        }
+        if self.kseg0_cache_bits[1] {
+            cache_value |= 1 << 1;
+        }
+        if self.kseg0_cache_bits[2] {
+            cache_value |= 1 << 2;
+        }
+        cache_value.into()
     }
 }
 
@@ -67,23 +85,23 @@ impl From<u32> for Endianness {
 
 #[derive(Debug)]
 enum CoherencyAlgorithm {
-    NotUsed,
-    Used,
+    NotUsed(u8),
+    Used(u8),
 }
 
 impl Default for CoherencyAlgorithm {
     fn default() -> Self {
-        CoherencyAlgorithm::NotUsed
+        CoherencyAlgorithm::NotUsed(0b000)
     }
 }
 
 impl From<u32> for CoherencyAlgorithm {
     fn from(f: u32) -> Self {
-        let coherency_algorithmdata = f & 0b111;
+        let coherency_algorithmdata = (f & 0b111) as u8;
         if coherency_algorithmdata == 0b010 {
-            CoherencyAlgorithm::NotUsed
+            CoherencyAlgorithm::NotUsed(coherency_algorithmdata)
         } else {
-            CoherencyAlgorithm::Used
+            CoherencyAlgorithm::Used(coherency_algorithmdata)
         }
 
     }
