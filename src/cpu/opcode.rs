@@ -22,11 +22,20 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Debug)]
     pub enum OpcodeSpecial {
+        SLL = 0b000000,
         SRL = 0b000010,
+        SLLV = 0b000100,
+        SRLV = 0b000110,
         JR = 0b001000,
+        MFHI = 0b010000,
         MFLO = 0b010010,
-        MUTLU = 0b011001,
+        MULTU = 0b011001,
+        ADDU = 0b100001,
+        SUBU = 0b100011,
+        AND = 0b100100,
         OR = 0b100101,
+        XOR = 0b100110,
+        SLTU = 0b101011,
     }
 }
 
