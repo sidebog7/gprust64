@@ -2,6 +2,7 @@ use std::fmt;
 use num::FromPrimitive;
 use super::opcode::Opcode;
 use super::opcode::OpcodeSpecial;
+use super::opcode::OpcodeBAL;
 
 pub const INSTRUCTION_SIZE: u8 = 4;
 
@@ -18,7 +19,7 @@ impl Instruction {
     pub fn opcode(&self) -> Opcode {
         let opcode = self.get_bits(26, 6) as u8;
         Opcode::from_u8(opcode)
-            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#08b}", self, opcode))
+            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#08b}", self.0, opcode))
     }
 
     #[inline(always)]
@@ -26,9 +27,17 @@ impl Instruction {
         let opcode = self.get_bits(0, 6) as u8;
         OpcodeSpecial::from_u8(opcode).unwrap_or_else(|| {
             panic!("Unrecognised special opcode {:#x} op: {:#08b}",
-                   self,
+                   self.0,
                    opcode)
         })
+    }
+
+
+    #[inline(always)]
+    pub fn opcode_bal(&self) -> OpcodeBAL {
+        let opcode = self.get_bits(16, 5) as u8;
+        OpcodeBAL::from_u8(opcode)
+            .unwrap_or_else(|| panic!("Unrecognised bal opcode {:#x} op: {:#08b}", self.0, opcode))
     }
 
     #[inline(always)]
@@ -77,6 +86,7 @@ impl fmt::Debug for Instruction {
         write!(f, "Opcode: {:?}", self.opcode()).unwrap();
         match self.opcode() {
             Opcode::SPECIAL => write!(f, ", Special: {:?}", self.opcode_special()),
+            Opcode::BAL => write!(f, ", BAL: {:?}", self.opcode_bal()),
             _ => write!(f, ""),
         }
     }

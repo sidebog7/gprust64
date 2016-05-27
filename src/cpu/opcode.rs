@@ -3,6 +3,7 @@ enum_from_primitive! {
     #[derive(Debug)]
     pub enum Opcode {
         SPECIAL = 0b000000,
+        BAL = 0b000001,
         MTC0 = 0b010000,
         ADDI = 0b001000,
         ADDIU = 0b001001,
@@ -23,7 +24,15 @@ enum_from_primitive! {
     pub enum OpcodeSpecial {
         SRL = 0b000010,
         JR = 0b001000,
+        MFLO = 0b010010,
         MUTLU = 0b011001,
         OR = 0b100101,
+    }
+}
+
+enum_from_primitive! {
+    #[derive(Debug)]
+    pub enum OpcodeBAL {
+        BGEZAL = 0b10001,
     }
 }

@@ -4,6 +4,7 @@ use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;
 use super::opcode::Opcode;
 use super::opcode::OpcodeSpecial;
+use super::opcode::OpcodeBAL;
 
 use std::fmt;
 
@@ -80,6 +81,10 @@ impl Cpu {
                           instruction.shift_amount();
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
+            OpcodeSpecial::MFLO => {
+                let lo = self.reg_lo;
+                self.write_gpr(instruction.destination(), lo);
+            }
             OpcodeSpecial::MUTLU => {
                 // TODO: Deal with MFHI and MFLO
                 let rs_val = self.read_gpr(instruction.source());
@@ -103,11 +108,27 @@ impl Cpu {
         }
     }
 
+    fn execute_bal(&mut self, instruction: Instruction) {
+        match instruction.opcode_bal() {
+            OpcodeBAL::BGEZAL => {
+                let r31val = self.reg_pc + 4;
+
+                self.branch(instruction, |rs, _, s| {
+                    s.write_gpr(31, r31val);
+                    (rs & 0x8000_0000) == 0
+                });
+            }
+        }
+    }
+
     fn execute_instruction(&mut self, instruction: Instruction) {
         println!("Instr: {:?}", instruction);
         match instruction.opcode() {
             Opcode::SPECIAL => {
                 self.execute_special(instruction);
+            }
+            Opcode::BAL => {
+                self.execute_bal(instruction);
             }
             Opcode::ADDI => {
                 let rs_val = self.read_gpr(instruction.source());
@@ -163,13 +184,13 @@ impl Cpu {
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
             Opcode::BEQ => {
-                self.branch(instruction, |rs, rt| rs == rt);
+                self.branch(instruction, |rs, rt, _| rs == rt);
             }
-            Opcode::BEQL => self.branch_likely(instruction, |rs, rt| rs == rt),
+            Opcode::BEQL => self.branch_likely(instruction, |rs, rt, _| rs == rt),
             Opcode::BNE => {
-                self.branch(instruction, |rs, rt| rs != rt);
+                self.branch(instruction, |rs, rt, _| rs != rt);
             }
-            Opcode::BNEL => self.branch_likely(instruction, |rs, rt| rs != rt),
+            Opcode::BNEL => self.branch_likely(instruction, |rs, rt, _| rs != rt),
             Opcode::LW => {
                 // LW
                 let base = self.read_gpr(instruction.source());
@@ -206,7 +227,7 @@ impl Cpu {
     }
 
     fn branch_likely<F>(&mut self, instruction: Instruction, f: F)
-        where F: FnOnce(u64, u64) -> bool
+        where F: FnOnce(u64, u64, &mut Cpu) -> bool
     {
         if !self.branch(instruction, f) {
             self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
@@ -214,11 +235,11 @@ impl Cpu {
     }
 
     fn branch<F>(&mut self, instruction: Instruction, f: F) -> bool
-        where F: FnOnce(u64, u64) -> bool
+        where F: FnOnce(u64, u64, &mut Cpu) -> bool
     {
         let rs = self.read_gpr(instruction.source());
         let rt = self.read_gpr(instruction.target_immediate());
-        let branch = f(rs, rt);
+        let branch = f(rs, rt, self);
 
         if branch {
             let new_pc = self.reg_pc
