@@ -2,9 +2,9 @@ use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;
-use super::opcode::Opcode;
-use super::opcode::OpcodeSpecial;
-use super::opcode::OpcodeBAL;
+use super::opcode::Opcode::*;
+use super::opcode::OpcodeSpecial::*;
+use super::opcode::OpcodeBAL::*;
 
 use std::fmt;
 
@@ -71,50 +71,50 @@ impl Cpu {
 
     fn execute_special(&mut self, instruction: Instruction) {
         match instruction.opcode_special() {
-            OpcodeSpecial::SLL => {
+            SLL => {
                 let shift = instruction.shift_amount();
                 let res = self.read_gpr(instruction.target_immediate()) << shift;
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
-            OpcodeSpecial::SLLV => {
+            SLLV => {
                 let shift = self.read_gpr(instruction.source()) & 0x1F;
                 let res = self.read_gpr(instruction.target_immediate()) << shift;
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
-            OpcodeSpecial::SRL => {
+            SRL => {
                 let shift = instruction.shift_amount();
                 let res = self.read_gpr(instruction.target_immediate()) >> shift;
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
-            OpcodeSpecial::SRLV => {
+            SRLV => {
                 let shift = self.read_gpr(instruction.source()) & 0x1F;
                 let res = self.read_gpr(instruction.target_immediate()) >> shift;
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
-            OpcodeSpecial::OR => {
+            OR => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 self.write_gpr(instruction.destination(), rs_val | rt_val);
             }
-            OpcodeSpecial::AND => {
+            AND => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 self.write_gpr(instruction.destination(), rs_val & rt_val);
             }
-            OpcodeSpecial::XOR => {
+            XOR => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 self.write_gpr(instruction.destination(), rs_val ^ rt_val);
             }
-            OpcodeSpecial::MFHI => {
+            MFHI => {
                 let hi = self.reg_hi;
                 self.write_gpr(instruction.destination(), hi);
             }
-            OpcodeSpecial::MFLO => {
+            MFLO => {
                 let lo = self.reg_lo;
                 self.write_gpr(instruction.destination(), lo);
             }
-            OpcodeSpecial::MULTU => {
+            MULTU => {
                 // TODO: Deal with MFHI and MFLO
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
@@ -126,21 +126,21 @@ impl Cpu {
                 self.reg_hi = ((res >> 32) as i32) as u64;
 
             }
-            OpcodeSpecial::ADDU => {
+            ADDU => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 println!("Add {:#x} - {:#x}", rs_val, rt_val);
                 let sub_val = rs_val.wrapping_add(rt_val);
                 self.write_gpr(instruction.destination(), (sub_val as i32) as u64);
             }
-            OpcodeSpecial::SUBU => {
+            SUBU => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 println!("Sub {:#x} - {:#x}", rs_val, rt_val);
                 let sub_val = rs_val.wrapping_sub(rt_val);
                 self.write_gpr(instruction.destination(), (sub_val as i32) as u64);
             }
-            OpcodeSpecial::JR => {
+            JR => {
                 println!("JUMPY");
                 let new_pc = self.read_gpr(instruction.source());
                 if new_pc & 0b11 != 0 {
@@ -148,7 +148,7 @@ impl Cpu {
                 }
                 self.change_pc(new_pc, true);
             }
-            OpcodeSpecial::SLTU => {
+            SLTU => {
                 let rs_val = self.read_gpr(instruction.source());
                 let rt_val = self.read_gpr(instruction.target_register());
                 self.write_gpr(instruction.destination(),
@@ -163,7 +163,7 @@ impl Cpu {
 
     fn execute_bal(&mut self, instruction: Instruction) {
         match instruction.opcode_bal() {
-            OpcodeBAL::BGEZAL => {
+            BGEZAL => {
                 let r31val = self.reg_pc + 4;
 
                 self.branch(instruction, |rs, _, s| {
@@ -177,13 +177,13 @@ impl Cpu {
     fn execute_instruction(&mut self, instruction: Instruction) {
         println!("Instr: {:?}", instruction);
         match instruction.opcode() {
-            Opcode::SPECIAL => {
+            SPECIAL => {
                 self.execute_special(instruction);
             }
-            Opcode::BAL => {
+            BAL => {
                 self.execute_bal(instruction);
             }
-            Opcode::ADDI => {
+            ADDI => {
                 let rs_val = self.read_gpr(instruction.source());
                 self.write_gpr(instruction.target_immediate(), {
 
@@ -212,39 +212,39 @@ impl Cpu {
                     res
                 });
             }
-            Opcode::ADDIU => {
+            ADDIU => {
                 let res = self.read_gpr(instruction.source())
                     .wrapping_add((instruction.immediate_extend()));
                 self.write_gpr(instruction.target_immediate(), res);
             }
-            Opcode::MTC0 => {
+            MTC0 => {
                 let rt = instruction.target_register();
                 let rd = instruction.destination();
                 let data = self.read_gpr(rt);
                 self.cp0.write_reg(rd, data);
             }
-            Opcode::ANDI => {
+            ANDI => {
                 let res = self.read_gpr(instruction.source()) & (instruction.immediate() as u64);
                 self.write_gpr(instruction.target_immediate(), res);
             }
-            Opcode::ORI => {
+            ORI => {
                 let res = self.read_gpr(instruction.source()) | (instruction.immediate() as u64);
                 self.write_gpr(instruction.target_immediate(), res);
             }
-            Opcode::LUI => {
+            LUI => {
                 // assume 32 bit mode
                 self.write_gpr(instruction.target_immediate(),
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
-            Opcode::BEQ => {
+            BEQ => {
                 self.branch(instruction, |rs, rt, _| rs == rt);
             }
-            Opcode::BEQL => self.branch_likely(instruction, |rs, rt, _| rs == rt),
-            Opcode::BNE => {
+            BEQL => self.branch_likely(instruction, |rs, rt, _| rs == rt),
+            BNE => {
                 self.branch(instruction, |rs, rt, _| rs != rt);
             }
-            Opcode::BNEL => self.branch_likely(instruction, |rs, rt, _| rs != rt),
-            Opcode::LW => {
+            BNEL => self.branch_likely(instruction, |rs, rt, _| rs != rt),
+            LW => {
                 // LW
                 let base = self.read_gpr(instruction.source());
                 let vaddr = base.wrapping_add((instruction.immediate() as i16) as u64);
@@ -258,7 +258,7 @@ impl Cpu {
 
 
             }
-            Opcode::SW => {
+            SW => {
                 let base = self.read_gpr(instruction.source());
                 let vaddr = base.wrapping_add((instruction.immediate() as i16) as u64);
                 if vaddr & 0b11 != 0 {
