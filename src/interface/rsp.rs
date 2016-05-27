@@ -1,6 +1,8 @@
 use byteorder::{BigEndian, ByteOrder};
 
-const SP_DMEM: u32 = 0;
+const SP_DMEM_START: u32 = 0;
+const SP_DMEM_LENGTH: u32 = 0x1000;
+const SP_DMEM_END: u32 = SP_DMEM_START + SP_DMEM_LENGTH - 1;
 const SP_IMEM_START: u32 = 0x1000;
 const SP_IMEM_LENGTH: u32 = 0x1000;
 const SP_IMEM_END: u32 = SP_IMEM_START + SP_IMEM_LENGTH - 1;
@@ -12,6 +14,7 @@ const SP_DMA_BUSY_REG: u32 = 0x40018;
 #[derive(Debug)]
 pub struct Rsp {
     imem: Box<[u8]>,
+    dmem: Box<[u8]>,
     halt: bool,
     broke: bool,
     intr: bool,
@@ -27,6 +30,7 @@ impl Rsp {
     pub fn new() -> Rsp {
         Rsp {
             imem: vec![0; SP_IMEM_LENGTH as usize].into_boxed_slice(),
+            dmem: vec![0; SP_DMEM_LENGTH as usize].into_boxed_slice(),
             halt: false,
             broke: false,
             intr: false,
@@ -41,6 +45,7 @@ impl Rsp {
 
     pub fn read(&self, addr: u32) -> u32 {
         match addr {
+            SP_DMEM_START...SP_DMEM_END => self.read_dmem(addr - SP_DMEM_START),
             SP_IMEM_START...SP_IMEM_END => self.read_imem(addr - SP_IMEM_START),
             SP_STATUS_REG => self.read_status_reg(),
             SP_DMA_BUSY_REG => self.read_dma_busy_reg(),
@@ -51,6 +56,9 @@ impl Rsp {
 
     pub fn write(&mut self, addr: u32, value: u32) {
         match addr {
+            SP_DMEM_START...SP_DMEM_END => {
+                self.write_dmem(addr - SP_DMEM_START, value);
+            }
             SP_IMEM_START...SP_IMEM_END => {
                 self.write_imem(addr - SP_IMEM_START, value);
             }
@@ -63,6 +71,14 @@ impl Rsp {
                        value)
             }
         }
+    }
+
+    fn read_dmem(&self, addr: u32) -> u32 {
+        BigEndian::read_u32(&self.dmem[addr as usize..])
+    }
+
+    fn write_dmem(&mut self, addr: u32, value: u32) {
+        BigEndian::write_u32(&mut self.dmem[addr as usize..], value);
     }
 
     fn read_imem(&self, addr: u32) -> u32 {

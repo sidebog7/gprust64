@@ -80,6 +80,18 @@ impl Cpu {
                           instruction.shift_amount();
                 self.write_gpr(instruction.destination(), (res as i32) as u64);
             }
+            OpcodeSpecial::MUTLU => {
+                // TODO: Deal with MFHI and MFLO
+                let rs_val = self.read_gpr(instruction.source());
+                let rt_val = self.read_gpr(instruction.target_register());
+
+                // 64-bit mode
+                let res = rs_val * rt_val;
+
+                self.reg_lo = ((res & 0xffffffff) as i32) as u64;
+                self.reg_hi = ((res >> 32) as i32) as u64;
+
+            }
             OpcodeSpecial::JR => {
                 println!("JUMPY");
                 let new_pc = self.read_gpr(instruction.source());
@@ -151,11 +163,11 @@ impl Cpu {
                                (((instruction.immediate() as u32) << 16) as i32) as u64);
             }
             Opcode::BEQ => {
-                let branch = self.branch(instruction, |rs, rt| rs == rt);
+                self.branch(instruction, |rs, rt| rs == rt);
             }
             Opcode::BEQL => self.branch_likely(instruction, |rs, rt| rs == rt),
             Opcode::BNE => {
-                let branch = self.branch(instruction, |rs, rt| rs != rt);
+                self.branch(instruction, |rs, rt| rs != rt);
             }
             Opcode::BNEL => self.branch_likely(instruction, |rs, rt| rs != rt),
             Opcode::LW => {
@@ -231,16 +243,16 @@ impl Cpu {
         Instruction(self.read_word(addr))
     }
 
-    fn write_gpr(&mut self, index: u8, value: u64) {
+    fn write_gpr(&mut self, index: usize, value: u64) {
         if index != 0 {
-            self.reg_gprs[index as usize] = value;
+            self.reg_gprs[index] = value;
         }
     }
 
-    fn read_gpr(&self, index: u8) -> u64 {
+    fn read_gpr(&self, index: usize) -> u64 {
         match index {
             0 => 0,
-            _ => self.reg_gprs[index as usize],
+            _ => self.reg_gprs[index],
         }
     }
 }

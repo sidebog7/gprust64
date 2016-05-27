@@ -23,6 +23,7 @@ enum_from_primitive! {
     pub enum OpcodeSpecial {
         SRL = 0b000010,
         JR = 0b001000,
+        MUTLU = 0b011001,
         OR = 0b100101,
     }
 }

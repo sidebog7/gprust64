@@ -1,3 +1,4 @@
+#![deny(trivial_casts, trivial_numeric_casts)]
 extern crate byteorder;
 #[macro_use]
 extern crate enum_primitive;

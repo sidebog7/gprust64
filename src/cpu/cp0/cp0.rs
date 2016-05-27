@@ -8,7 +8,7 @@ pub struct CP0 {
 }
 
 impl CP0 {
-    pub fn write_reg(&mut self, index: u8, data: u64) {
+    pub fn write_reg(&mut self, index: usize, data: u64) {
         match index {
             12 => {
                 self.reg_status = (data as u32).into();

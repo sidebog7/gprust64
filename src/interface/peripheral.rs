@@ -29,6 +29,7 @@ impl Peripheral {
     }
 
     pub fn write(&mut self, addr: u32, value: u32) {
+        println!("SET DOMAIN TO {:#x} -> {:#x}", addr, value);
         match addr {
             PI_STATUS_REG => self.write_status_reg(value),
             PI_DOMAIN1_REG => self.write_domain_reg(value),
@@ -48,7 +49,7 @@ impl Peripheral {
     }
 
     fn write_domain_reg(&mut self, value: u32) {
-        println!("SET DOMAIN TO {:#x}", value);
+
         self.domain1_latency = (value & 0xff) as u8;
     }
 

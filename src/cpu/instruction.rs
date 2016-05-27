@@ -42,13 +42,13 @@ impl Instruction {
     }
 
     #[inline(always)]
-    pub fn source(&self) -> u8 {
-        self.get_bits(21, 5) as u8
+    pub fn source(&self) -> usize {
+        self.get_bits(21, 5) as usize
     }
 
     #[inline(always)]
-    pub fn destination(&self) -> u8 {
-        self.get_bits(11, 5) as u8
+    pub fn destination(&self) -> usize {
+        self.get_bits(11, 5) as usize
     }
 
     #[inline(always)]
@@ -57,8 +57,8 @@ impl Instruction {
     }
 
     #[inline(always)]
-    pub fn target_immediate(&self) -> u8 {
-        self.get_bits(16, 5) as u8
+    pub fn target_immediate(&self) -> usize {
+        self.get_bits(16, 5) as usize
     }
 
     #[inline(always)]
@@ -67,7 +67,7 @@ impl Instruction {
     }
 
     #[inline(always)]
-    pub fn target_register(&self) -> u8 {
+    pub fn target_register(&self) -> usize {
         self.target_immediate()
     }
 }

@@ -1,11 +1,12 @@
-use super::memory_map::*;
-use super::interface::rsp::Rsp;
-use super::interface::peripheral::Peripheral;
-use super::interface::video::Video;
-use super::interface::audio::Audio;
-use super::interface::pif::Pif;
-use super::interface::serial::Serial;
-use super::interface::cartridge::Cartridge;
+use memory_map::*;
+use interface::rsp::Rsp;
+use interface::peripheral::Peripheral;
+use interface::video::Video;
+use interface::audio::Audio;
+use interface::pif::Pif;
+use interface::serial::Serial;
+use interface::cartridge::Cartridge;
+use interface::drawing::Drawing;
 use std::fmt;
 
 const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -19,6 +20,7 @@ pub struct Bus {
     ai: Audio,
     si: Serial,
     cd1: Cartridge,
+    dpc: Drawing,
 }
 
 impl fmt::Debug for Bus {
@@ -37,6 +39,7 @@ impl Bus {
             ai: Audio::default(),
             si: Serial::default(),
             cd1: Cartridge::new(cartrom),
+            dpc: Drawing::default(),
         }
     }
 
@@ -49,6 +52,7 @@ impl Bus {
             Addr::AUDIO(rel_addr) => self.ai.read(rel_addr),
             Addr::SERIAL(rel_addr) => self.si.read(rel_addr),
             Addr::CARTDOM1(rel_addr) => self.cd1.read(rel_addr),
+            Addr::DPC(rel_addr) => self.dpc.read(rel_addr),
         }
     }
 
@@ -61,6 +65,7 @@ impl Bus {
             Addr::AUDIO(rel_addr) => self.ai.write(rel_addr, value),
             Addr::SERIAL(rel_addr) => self.si.write(rel_addr, value),
             Addr::CARTDOM1(rel_addr) => self.cd1.write(rel_addr, value),
+            Addr::DPC(rel_addr) => self.dpc.write(rel_addr, value),
         }
     }
 }

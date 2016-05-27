@@ -8,8 +8,8 @@ pub const PIF_END: u32 = 0x1fc0_07ff;
 pub const SP_REG_BASE: u32 = 0x0400_0000;
 pub const SP_REG_END: u32 = 0x040F_FFFF;
 
-pub const PI_REG_BASE: u32 = 0x0460_0000;
-pub const PI_REG_END: u32 = 0x046F_FFFF;
+pub const DPC_REG_BASE: u32 = 0x0410_0000;
+pub const DPC_REG_END: u32 = 0x041F_FFFF;
 
 pub const VI_REG_BASE: u32 = 0x0440_0000;
 pub const VI_REG_END: u32 = 0x044F_FFFF;
@@ -17,8 +17,12 @@ pub const VI_REG_END: u32 = 0x044F_FFFF;
 pub const AI_REG_BASE: u32 = 0x0450_0000;
 pub const AI_REG_END: u32 = 0x045F_FFFF;
 
+pub const PI_REG_BASE: u32 = 0x0460_0000;
+pub const PI_REG_END: u32 = 0x046F_FFFF;
+
 pub const SI_REG_BASE: u32 = 0x0480_0000;
 pub const SI_REG_END: u32 = 0x048F_FFFF;
+
 
 pub enum Addr {
     PIF(u32),
@@ -28,6 +32,7 @@ pub enum Addr {
     AUDIO(u32),
     SERIAL(u32),
     CARTDOM1(u32),
+    DPC(u32),
 }
 
 
@@ -40,6 +45,7 @@ pub fn map_addr(addr: u32) -> Addr {
         VI_REG_BASE...VI_REG_END => Addr::VIDEO(addr - VI_REG_BASE),
         AI_REG_BASE...AI_REG_END => Addr::AUDIO(addr - AI_REG_BASE),
         SI_REG_BASE...SI_REG_END => Addr::SERIAL(addr - SI_REG_BASE),
+        DPC_REG_BASE...DPC_REG_END => Addr::DPC(addr - DPC_REG_BASE),
         _ => panic!("Unrecognised physical address {:#x}", addr),
     }
 }
