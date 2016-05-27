@@ -14,10 +14,6 @@ impl N64 {
         N64 { cpu: cpu }
     }
 
-    pub fn run(&mut self) {
-        self.cpu.run();
-    }
-
     pub fn run_instruction(&mut self) {
         self.cpu.run_instruction();
     }

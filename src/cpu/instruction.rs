@@ -2,7 +2,7 @@ use std::fmt;
 use num::FromPrimitive;
 use super::opcode::Opcode;
 use super::opcode::OpcodeSpecial;
-use super::opcode::OpcodeBAL;
+use super::opcode::OpcodeRegimm;
 
 pub const INSTRUCTION_SIZE: u8 = 4;
 
@@ -34,9 +34,9 @@ impl Instruction {
 
 
     #[inline(always)]
-    pub fn opcode_bal(&self) -> OpcodeBAL {
+    pub fn opcode_regimm(&self) -> OpcodeRegimm {
         let opcode = self.get_bits(16, 5) as u8;
-        OpcodeBAL::from_u8(opcode)
+        OpcodeRegimm::from_u8(opcode)
             .unwrap_or_else(|| panic!("Unrecognised bal opcode {:#x} op: {:#08b}", self.0, opcode))
     }
 
@@ -71,11 +71,6 @@ impl Instruction {
     }
 
     #[inline(always)]
-    pub fn target_jump(&self) -> u32 {
-        self.get_bits(0, 26)
-    }
-
-    #[inline(always)]
     pub fn target_register(&self) -> usize {
         self.target_immediate()
     }
@@ -86,7 +81,7 @@ impl fmt::Debug for Instruction {
         write!(f, "Opcode: {:?}", self.opcode()).unwrap();
         match self.opcode() {
             Opcode::SPECIAL => write!(f, ", Special: {:?}", self.opcode_special()),
-            Opcode::BAL => write!(f, ", BAL: {:?}", self.opcode_bal()),
+            Opcode::REGIMM => write!(f, ", BAL: {:?}", self.opcode_regimm()),
             _ => write!(f, ""),
         }
     }

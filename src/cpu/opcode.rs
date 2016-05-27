@@ -3,7 +3,7 @@ enum_from_primitive! {
     #[derive(Debug)]
     pub enum Opcode {
         SPECIAL = 0b000000,
-        BAL = 0b000001,
+        REGIMM = 0b000001,
         MTC0 = 0b010000,
         ADDI = 0b001000,
         ADDIU = 0b001001,
@@ -41,7 +41,7 @@ enum_from_primitive! {
 
 enum_from_primitive! {
     #[derive(Debug)]
-    pub enum OpcodeBAL {
+    pub enum OpcodeRegimm {
         BGEZAL = 0b10001,
     }
 }

@@ -18,14 +18,16 @@ impl Drawing {
     pub fn write(&mut self, addr: u32, value: u32) {
         match addr {
             _ => {
-                panic!("Cannot write to register in Drawing {:#x} <- {:#x}",
-                       addr,
-                       value)
+                self.write_status_reg(addr, value);
             }
         }
     }
 
-    fn write_status_reg(&mut self, addr: u32, value: u32) {}
+    fn write_status_reg(&mut self, addr: u32, value: u32) {
+        panic!("Cannot write to register in Drawing {:#x} <- {:#x}",
+               addr,
+               value)
+    }
 
     fn read_status_reg(&self) -> u32 {
         0

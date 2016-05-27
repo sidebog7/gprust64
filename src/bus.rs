@@ -9,11 +9,11 @@ use interface::cartridge::Cartridge;
 use interface::drawing::Drawing;
 use std::fmt;
 
-const RAM_SIZE: usize = 4 * 1024 * 1024;
+// const RAM_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct Bus {
     pif: Pif,
-    ram: Box<[u16]>,
+    // ram: Box<[u16]>,
     rsp: Rsp,
     pi: Peripheral,
     vi: Video,
@@ -32,7 +32,7 @@ impl Bus {
     pub fn new(pifrom: Box<[u8]>, cartrom: Box<[u8]>) -> Bus {
         Bus {
             pif: Pif::new(pifrom),
-            ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
+            // ram: vec![0u16; RAM_SIZE].into_boxed_slice(),
             rsp: Rsp::new(),
             pi: Peripheral::default(),
             vi: Video::default(),
@@ -51,7 +51,8 @@ impl Bus {
             Addr::VIDEO(rel_addr) => self.vi.read(rel_addr),
             Addr::AUDIO(rel_addr) => self.ai.read(rel_addr),
             Addr::SERIAL(rel_addr) => self.si.read(rel_addr),
-            Addr::CARTDOM1(rel_addr) => self.cd1.read(rel_addr),
+            Addr::CARTDOM11(_) => 0,
+            Addr::CARTDOM12(rel_addr) => self.cd1.read(rel_addr),
             Addr::DPC(rel_addr) => self.dpc.read(rel_addr),
         }
     }
@@ -64,7 +65,8 @@ impl Bus {
             Addr::VIDEO(rel_addr) => self.vi.write(rel_addr, value),
             Addr::AUDIO(rel_addr) => self.ai.write(rel_addr, value),
             Addr::SERIAL(rel_addr) => self.si.write(rel_addr, value),
-            Addr::CARTDOM1(rel_addr) => self.cd1.write(rel_addr, value),
+            Addr::CARTDOM11(_) => panic!("WRITE CART DOM 1_1 {:#x}", value),
+            Addr::CARTDOM12(rel_addr) => self.cd1.write(rel_addr, value),
             Addr::DPC(rel_addr) => self.dpc.write(rel_addr, value),
         }
     }
