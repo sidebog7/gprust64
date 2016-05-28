@@ -4,7 +4,7 @@ use super::opcode::Opcode;
 use super::opcode::OpcodeSpecial;
 use super::opcode::OpcodeRegimm;
 
-pub const INSTRUCTION_SIZE: u8 = 4;
+pub const INSTRUCTION_SIZE: u64 = 4;
 
 #[derive(Clone, Copy)]
 pub struct Instruction(pub u32);

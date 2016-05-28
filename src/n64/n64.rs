@@ -1,4 +1,4 @@
-use super::cpu;
+use super::super::cpu;
 use super::bus;
 
 #[derive(Debug)]
@@ -15,6 +15,6 @@ impl N64 {
     }
 
     pub fn run_instruction(&mut self) {
-        self.cpu.run_instruction();
+        self.cpu.run_and_inc();
     }
 }

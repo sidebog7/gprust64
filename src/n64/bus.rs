@@ -1,4 +1,4 @@
-use memory_map::*;
+use super::memory_map::*;
 use interface::rsp::Rsp;
 use interface::peripheral::Peripheral;
 use interface::video::Video;

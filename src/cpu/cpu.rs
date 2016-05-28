@@ -1,4 +1,4 @@
-use super::super::bus;
+use super::super::n64::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;
@@ -40,6 +40,9 @@ pub struct Cpu {
     cp0: CP0,
 
     bus: bus::Bus,
+
+    instruction: Option<Instruction>,
+    delay_slot: Option<Instruction>,
 }
 
 impl Cpu {
@@ -61,16 +64,35 @@ impl Cpu {
             cp0: CP0::default(),
 
             bus: bus,
+
+            instruction: None,
+            delay_slot: None,
         }
     }
 
-    pub fn run_instruction(&mut self) {
-        let instruction = self.read_instruction(self.reg_pc);
-        self.print_instruction(instruction, self.reg_pc, false);
-        let new_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64);
-        self.change_pc(new_pc, false);
+    fn read_instruction(&mut self, cur_pc: u64) -> Instruction {
+        let new_pc = match self.delay_slot {
+            Some(_) => {
+                self.instruction = self.delay_slot;
+                cur_pc
+            }
+            None => {
+                self.instruction = Some(Instruction(self.read_word(cur_pc)));
+                cur_pc.wrapping_add(INSTRUCTION_SIZE)
+            }
+        };
 
-        self.execute_instruction(instruction);
+        self.delay_slot = Some(Instruction(self.read_word(new_pc)));
+
+        self.instruction.unwrap()
+    }
+
+    pub fn run_and_inc(&mut self) {
+        let pc = self.reg_pc;
+        let instr = self.read_instruction(pc);
+        self.print_instruction(instr, self.reg_pc);
+        self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE);
+        self.execute_instruction(instr);
     }
 
     fn reg_operand<F>(&mut self, instruction: Instruction, ex: ExtendResult, f: F)
@@ -174,7 +196,7 @@ impl Cpu {
                 if new_pc & 0b11 != 0 {
                     panic!("Address error exception");
                 }
-                self.change_pc(new_pc, true);
+                self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
             }
             SLTU => {
                 self.reg_operand(instruction, ExtendResult::No, |rs, rt| if rs < rt {
@@ -295,25 +317,7 @@ impl Cpu {
 
     }
 
-    fn change_pc(&mut self, new_address: u64, with_delay: bool) {
-        let delay_slot_pc = self.reg_pc;
-        let delay_instuction = self.read_instruction(delay_slot_pc);
-        self.reg_pc = new_address;
-        if with_delay {
-            self.print_instruction(delay_instuction, delay_slot_pc, true);
-            self.execute_instruction(delay_instuction);
-        }
-    }
-
-    fn branch_likely<F>(&mut self, instruction: Instruction, f: F)
-        where F: FnOnce(u64, u64, &mut Cpu) -> bool
-    {
-        if !self.branch(instruction, f) {
-            self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE as u64)
-        }
-    }
-
-    fn branch<F>(&mut self, instruction: Instruction, f: F) -> bool
+    fn do_branch<F>(&mut self, instruction: Instruction, f: F, clear_delay: bool)
         where F: FnOnce(u64, u64, &mut Cpu) -> bool
     {
         let rs = self.read_gpr(instruction.source());
@@ -323,9 +327,22 @@ impl Cpu {
         if branch {
             let new_pc = self.reg_pc
                 .wrapping_add(((instruction.immediate() << 2) as i16) as u64);
-            self.change_pc(new_pc, true);
+            self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
+        } else if clear_delay {
+            self.delay_slot = None;
         }
-        branch
+    }
+
+    fn branch_likely<F>(&mut self, instruction: Instruction, f: F)
+        where F: FnOnce(u64, u64, &mut Cpu) -> bool
+    {
+        self.do_branch(instruction, f, true);
+    }
+
+    fn branch<F>(&mut self, instruction: Instruction, f: F)
+        where F: FnOnce(u64, u64, &mut Cpu) -> bool
+    {
+        self.do_branch(instruction, f, false);
     }
 
     fn read_word(&self, addr: u64) -> u32 {
@@ -338,28 +355,20 @@ impl Cpu {
         self.bus.write_word(paddr as u32, value);
     }
 
-    fn read_instruction(&self, addr: u64) -> Instruction {
-        Instruction(self.read_word(addr))
-    }
-
-    fn print_instruction(&self, instruction: Instruction, pc: u64, delay: bool) {
+    fn print_instruction(&self, instruction: Instruction, pc: u64) {
         print!("reg_pc {:018X}: ", pc);
         match instruction.opcode() {
             SPECIAL => {
-                print!("Special: {:?}", instruction.opcode_special());
+                println!("Special: {:?}", instruction.opcode_special());
             }
             REGIMM => {
-                print!("Branch: {:?}", instruction.opcode_regimm());
+                println!("Branch: {:?}", instruction.opcode_regimm());
             }
             _ => {
-                print!("{:?}", instruction.opcode());
+                println!("{:?}", instruction.opcode());
             }
         }
-        if delay {
-            println!(" (DELAY)");
-        } else {
-            println!("");
-        };
+
     }
 
     fn write_gpr(&mut self, index: usize, value: u64) {
