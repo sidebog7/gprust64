@@ -6,7 +6,7 @@ pub const PIF_RAM_SIZE: usize = 0x40;
 pub const PIF_RAM_START: u32 = 0x07c0;
 pub const PIF_RAM_END: u32 = PIF_RAM_START + (PIF_RAM_SIZE as u32) - 1;
 
-const TEST_SEED: u32 = 0x90BB6CB5;
+const TEST_SEED: u32 = 0x00023F3F;
 
 fn fix_ram(ram: &mut [u8]) {
     ram[0x24] = ((TEST_SEED >> 24) & 0xff) as u8;
