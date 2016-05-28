@@ -1,4 +1,4 @@
-use super::super::n64::bus;
+use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::instruction::INSTRUCTION_SIZE;

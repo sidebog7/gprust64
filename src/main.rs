@@ -6,13 +6,13 @@ extern crate num;
 
 mod n64;
 mod debugger;
-mod cpu;
-mod interface;
 
 use std::env;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+
+use debugger::*;
 
 fn main() {
     let pif_file_name = env::args().nth(1).unwrap();
@@ -22,7 +22,7 @@ fn main() {
     let rom = load_bin(rom_file_name);
 
     let n64 = n64::N64::new(pif, rom);
-    let mut debugger = debugger::Debugger::new(n64);
+    let mut debugger = Debugger::new(n64);
     debugger.run();
 }
 
