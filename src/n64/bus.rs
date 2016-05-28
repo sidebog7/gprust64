@@ -8,6 +8,7 @@ use super::interface::pif::Pif;
 use super::interface::serial::Serial;
 use super::interface::cartridge::Cartridge;
 use super::interface::drawing::Drawing;
+use super::interface::rdram::Rdram;
 use std::fmt;
 
 // const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -22,6 +23,7 @@ pub struct Bus {
     si: Serial,
     cd1: Cartridge,
     dpc: Drawing,
+    rdram: Rdram,
 }
 
 impl fmt::Debug for Bus {
@@ -41,11 +43,14 @@ impl Bus {
             si: Serial::default(),
             cd1: Cartridge::new(cartrom),
             dpc: Drawing::default(),
+            rdram: Rdram::new(),
         }
     }
 
     pub fn read_word(&self, addr: u32) -> u32 {
         match map_addr(addr) {
+            Addr::RDRAM(rel_addr) => self.rdram.read_mem(rel_addr),
+            Addr::RDRAMREG(rel_addr) => self.rdram.read_reg(rel_addr),
             Addr::PIF(rel_addr) => self.pif.read(rel_addr),
             Addr::RSP(rel_addr) => self.rsp.read(rel_addr),
             Addr::PERIPHERAL(rel_addr) => self.pi.read(rel_addr),
@@ -60,6 +65,8 @@ impl Bus {
 
     pub fn write_word(&mut self, addr: u32, value: u32) {
         match map_addr(addr) {
+            Addr::RDRAM(rel_addr) => self.rdram.write_mem(rel_addr, value),
+            Addr::RDRAMREG(rel_addr) => self.rdram.write_reg(rel_addr, value),
             Addr::PIF(rel_addr) => self.pif.write(rel_addr, value),
             Addr::RSP(rel_addr) => self.rsp.write(rel_addr, value),
             Addr::PERIPHERAL(rel_addr) => self.pi.write(rel_addr, value),

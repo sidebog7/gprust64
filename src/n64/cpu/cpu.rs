@@ -109,7 +109,7 @@ impl Cpu {
     }
 
     fn imm_operand<F>(&mut self, instruction: Instruction, ex: ExtendImmediate, f: F)
-        where F: FnOnce(u64, u64) -> u64
+        where F: FnOnce(u64, u64) -> Option<u64>
     {
         let rs_val = self.read_gpr(instruction.source());
         let imm = match ex {
@@ -117,7 +117,12 @@ impl Cpu {
             ExtendImmediate::No => instruction.immediate() as u64,
         };
         let value = f(rs_val, imm);
-        self.write_gpr(instruction.target_immediate(), value);
+        match value {
+            Some(result) => {
+                self.write_gpr(instruction.target_immediate(), result);
+            }
+            None => {}
+        }
     }
 
     fn shift_operand<F>(&mut self, instruction: Instruction, ex: ExtendResult, f: F)
@@ -230,6 +235,18 @@ impl Cpu {
                 self.execute_regimm(instruction);
             }
             ADDI => {
+                // This may not be correct
+                // self.imm_operand(instruction, ExtendImmediate::Yes, |rs, imm| {
+                //     let res = rs.wrapping_add(imm);
+                //     let bit31 = res & 0x8000_0000 != 0;
+                //     let bit30 = res & 0x4000_0000 != 0;
+                //     if bit31 != bit30 {
+                //         None
+                //     } else {
+                //         Some(res)
+                //     }
+                // });
+                // This may be more correct!
                 let rs_val = self.read_gpr(instruction.source());
                 self.write_gpr(instruction.target_immediate(), {
 
@@ -261,7 +278,7 @@ impl Cpu {
             ADDIU => {
                 self.imm_operand(instruction,
                                  ExtendImmediate::Yes,
-                                 |rs, imm| rs.wrapping_add(imm));
+                                 |rs, imm| Some(rs.wrapping_add(imm)));
             }
             MTC0 => {
 
@@ -271,16 +288,16 @@ impl Cpu {
                 self.cp0.write_reg(rd, data);
             }
             ANDI => {
-                self.imm_operand(instruction, ExtendImmediate::No, |rs, imm| rs & imm);
+                self.imm_operand(instruction, ExtendImmediate::No, |rs, imm| Some(rs & imm));
             }
             ORI => {
-                self.imm_operand(instruction, ExtendImmediate::No, |rs, imm| rs | imm);
+                self.imm_operand(instruction, ExtendImmediate::No, |rs, imm| Some(rs | imm));
             }
             LUI => {
                 // assume 32 bit mode
                 self.imm_operand(instruction,
                                  ExtendImmediate::No,
-                                 |_, imm| ((imm << 16) as i32) as u64);
+                                 |_, imm| Some(((imm << 16) as i32) as u64));
             }
             BEQ => {
                 self.branch(instruction, |rs, rt, _| rs == rt);
@@ -311,6 +328,12 @@ impl Cpu {
                     panic!("Address error exception");
                 }
                 let value = self.read_gpr(instruction.target_immediate()) as u32;
+                println!("SW {:#x} {:#x} {:#x} {:#x} {:#x}",
+                         base,
+                         vaddr,
+                         instruction.source(),
+                         (instruction.immediate() as i16) as u64,
+                         instruction);
                 self.write_word(vaddr, value);
             }
         }
@@ -356,7 +379,7 @@ impl Cpu {
     }
 
     fn print_instruction(&self, instruction: Instruction, pc: u64) {
-        print!("reg_pc {:018X}: ", pc);
+        print!("reg_pc {:018X}: {:#x} ", pc, instruction);
         match instruction.opcode() {
             SPECIAL => {
                 println!("Special: {:?}", instruction.opcode_special());
@@ -373,6 +396,9 @@ impl Cpu {
 
     fn write_gpr(&mut self, index: usize, value: u64) {
         if index != 0 {
+            if index == 0xd {
+                println!("STORE {:#x}", value);
+            }
             self.reg_gprs[index] = value;
         }
     }

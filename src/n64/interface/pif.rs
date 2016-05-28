@@ -23,7 +23,10 @@ pub struct Pif {
 impl Pif {
     pub fn new(pifrom: Box<[u8]>) -> Pif {
         let mut ram = vec![0u8; PIF_RAM_SIZE].into_boxed_slice();
+
+        // Attempt to fix startup error
         fix_ram(&mut ram[0..]);
+
         Pif {
             rom: pifrom,
             ram: ram,

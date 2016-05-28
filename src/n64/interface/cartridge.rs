@@ -20,6 +20,7 @@ pub struct Cartridge {
 
 impl Cartridge {
     pub fn new(cartrom: Box<[u8]>) -> Cartridge {
+        // Attempt to debug startup issue
         let crc = calc_crc(&cartrom[CRC_START..], CRC_END);
         let crc_aleck = calc_crc(&cartrom[CRC_START..], CRC_ALECK_END);
         let fix = 0;
@@ -94,12 +95,7 @@ fn calc_crc(rom: &[u8], size: usize) -> u32 {
     c = 0 ^ 0xFFFFFFFF;
 
     for n in 0..size {
-        let p = if (n & 1) == 1 {
-            n - 1
-        } else {
-            n + 1
-        };
-        c = table[((c ^ rom[p] as u32) & 0xFF) as usize] ^ (c >> 8);
+        c = table[((c ^ rom[n] as u32) & 0xFF) as usize] ^ (c >> 8);
     }
 
     c ^ 0xFFFFFFFF
