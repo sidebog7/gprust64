@@ -3,6 +3,7 @@ extern crate byteorder;
 #[macro_use]
 extern crate enum_primitive;
 extern crate num;
+extern crate clap;
 
 mod n64;
 mod debugger;
@@ -11,19 +12,44 @@ use std::env;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+use clap::{Arg, App};
 
 use debugger::*;
 
 fn main() {
-    let pif_file_name = env::args().nth(1).unwrap();
-    let rom_file_name = env::args().nth(2).unwrap();
+    let matches = App::new("GPRust64")
+        .version("0.1")
+        .author("Gareth Pendleton <gareth.sidebottom@gmail.com>")
+        .about("Beginnings of an N64 emulator")
+        .arg(Arg::with_name("debug")
+            .short("d")
+            .long("debug")
+            .help("Starts up in debug mode"))
+        .arg(Arg::with_name("PIFROM")
+            .help("Sets the pif rom file to use")
+            .required(true)
+            .index(1))
+        .arg(Arg::with_name("CARTROM")
+            .help("Sets the cartridge rom file to use")
+            .required(true)
+            .index(2))
+        .get_matches();
+
+    let pif_file_name = matches.value_of("PIFROM").unwrap();
+    let rom_file_name = matches.value_of("CARTROM").unwrap();
 
     let pif = load_bin(pif_file_name);
     let rom = load_bin(rom_file_name);
 
-    let n64 = n64::N64::new(pif, rom);
-    let mut debugger = Debugger::new(n64);
-    debugger.run();
+    let mut n64 = n64::N64::new(pif, rom);
+    if matches.is_present("debug") {
+        let mut debugger = Debugger::new(n64);
+        debugger.run();
+    } else {
+        loop {
+            n64.run_instruction();
+        }
+    }
 }
 
 
