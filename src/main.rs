@@ -8,7 +8,6 @@ extern crate clap;
 mod n64;
 mod debugger;
 
-use std::env;
 use std::fs;
 use std::io::Read;
 use std::path::Path;

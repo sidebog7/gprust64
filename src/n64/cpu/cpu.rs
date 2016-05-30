@@ -23,7 +23,8 @@ enum ExtendResult {
     No,
 }
 
-pub struct Cpu {
+#[derive(Default, Clone, Copy)]
+pub struct Registers {
     reg_gprs: [u64; NUM_GPREG],
     reg_fprs: [f64; NUM_FPREG],
 
@@ -36,64 +37,111 @@ pub struct Cpu {
 
     reg_fcr0: u32,
     reg_fcr31: u32,
+}
+
+impl fmt::Debug for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const REGS_PER_LINE: usize = 2;
+        const REG_NAMES: [&'static str; NUM_GPREG] =
+            ["r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5",
+             "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1",
+             "gp", "sp", "s8", "ra"];
+
+        try!(write!(f, "\nCPU General Purpose Registers:"));
+        for reg_num in 0..NUM_GPREG {
+            if (reg_num % REGS_PER_LINE) == 0 {
+                try!(writeln!(f, ""));
+            }
+            try!(write!(f,
+                        "{reg_name}/gpr{num:02}: {value:#018X} ",
+                        num = reg_num,
+                        reg_name = REG_NAMES[reg_num],
+                        value = self.reg_gprs[reg_num]));
+        }
+
+        try!(write!(f, "\n\nCPU Floating Point Registers:"));
+        for reg_num in 0..NUM_FPREG {
+            if (reg_num % REGS_PER_LINE) == 0 {
+                try!(writeln!(f, ""));
+            }
+            try!(write!(f,
+                "fpr{num:02}: {value:21} ",
+                num = reg_num,
+                value = self.reg_fprs[reg_num],));
+        }
+
+        try!(writeln!(f, "\n\nCPU Special Registers:"));
+        writeln!(f,
+                 "\
+            reg_pc: {:#018X}\nreg_hi: {:#018X}\nreg_lo: {:#018X}\nreg_llbit: \
+                  {}\nreg_fcr0:  {:#010X}\nreg_fcr31: {:#010X}\n",
+                 self.reg_pc,
+                 self.reg_hi,
+                 self.reg_lo,
+                 self.reg_llbit,
+                 self.reg_fcr0,
+                 self.reg_fcr31)
+    }
+}
+
+
+pub struct Cpu {
+    new_reg: Registers,
+    reg: Registers,
 
     cp0: CP0,
 
     bus: bus::Bus,
 
-    instruction: Option<Instruction>,
     delay_slot: Option<Instruction>,
 }
 
 impl Cpu {
     pub fn new(bus: bus::Bus) -> Cpu {
-        Cpu {
-            reg_gprs: [0; NUM_GPREG],
-            reg_fprs: [0.0; NUM_FPREG],
+        let mut reg = Registers::default();
+        reg.reg_pc = PIF_ROM_START;
 
-            reg_pc: PIF_ROM_START,
 
-            reg_hi: 0,
-            reg_lo: 0,
-
-            reg_llbit: false,
-
-            reg_fcr0: 0,
-            reg_fcr31: 0,
+        let mut cpu = Cpu {
+            new_reg: reg,
+            reg: reg,
 
             cp0: CP0::default(),
 
             bus: bus,
 
-            instruction: None,
             delay_slot: None,
-        }
-    }
-
-    fn read_instruction(&mut self, cur_pc: u64) -> Instruction {
-        let new_pc = match self.delay_slot {
-            Some(_) => {
-                self.instruction = self.delay_slot;
-                cur_pc
-            }
-            None => {
-                self.instruction = Some(Instruction(self.read_word(cur_pc)));
-                cur_pc.wrapping_add(INSTRUCTION_SIZE)
-            }
         };
-
-        self.delay_slot = Some(Instruction(self.read_word(new_pc)));
-
-        self.instruction.unwrap()
+        cpu.init_delay_slot();
+        cpu
     }
+
+    fn init_delay_slot(&mut self) {
+        self.delay_slot = Some(Instruction(self.read_word(self.reg.reg_pc)));
+    }
+
 
     pub fn run_and_inc(&mut self) {
-        let pc = self.reg_pc;
-        let instr = self.read_instruction(pc);
-        self.print_instruction(instr, self.reg_pc);
-        self.reg_pc = self.reg_pc.wrapping_add(INSTRUCTION_SIZE);
-        self.execute_instruction(instr);
+
+        let instr = self.delay_slot;
+
+        self.print_instruction(instr, self.reg.reg_pc);
+        self.new_reg = self.reg.clone();
+        let new_pc = self.new_reg.reg_pc.wrapping_add(INSTRUCTION_SIZE);
+        self.delay_slot = Some(Instruction(self.read_word(new_pc)));
+        self.new_reg.reg_pc = new_pc;
+        match instr {
+            Some(i) => {
+                self.execute_instruction(i);
+            }
+            None => {}
+        }
+
+        self.reg = self.new_reg;
+
     }
+
+
 
     fn reg_operand<F>(&mut self, instruction: Instruction, ex: ExtendResult, f: F)
         where F: FnOnce(u64, u64) -> u64
@@ -171,11 +219,11 @@ impl Cpu {
                 self.reg_operand(instruction, ExtendResult::No, |rs, rt| rs ^ rt);
             }
             MFHI => {
-                let hi = self.reg_hi;
+                let hi = self.new_reg.reg_hi;
                 self.write_gpr(instruction.destination(), hi);
             }
             MFLO => {
-                let lo = self.reg_lo;
+                let lo = self.new_reg.reg_lo;
                 self.write_gpr(instruction.destination(), lo);
             }
             MULTU => {
@@ -186,8 +234,8 @@ impl Cpu {
                 // 64-bit mode
                 let res = rs_val.wrapping_mul(rt_val);
 
-                self.reg_lo = ((res & 0xffffffff) as i32) as u64;
-                self.reg_hi = ((res >> 32) as i32) as u64;
+                self.new_reg.reg_lo = ((res & 0xffffffff) as i32) as u64;
+                self.new_reg.reg_hi = ((res >> 32) as i32) as u64;
 
             }
             ADDU => {
@@ -201,7 +249,9 @@ impl Cpu {
                 if new_pc & 0b11 != 0 {
                     panic!("Address error exception");
                 }
-                self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
+
+                self.new_reg.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
+                // self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
             }
             SLTU => {
                 self.reg_operand(instruction, ExtendResult::No, |rs, rt| if rs < rt {
@@ -216,7 +266,7 @@ impl Cpu {
     fn execute_regimm(&mut self, instruction: Instruction) {
         match instruction.opcode_regimm() {
             BGEZAL => {
-                let r31val = self.reg_pc + 4;
+                let r31val = self.new_reg.reg_pc.wrapping_add(INSTRUCTION_SIZE);
 
                 self.branch(instruction, |rs, _, s| {
                     s.write_gpr(31, r31val);
@@ -236,6 +286,7 @@ impl Cpu {
             }
             ADDI => {
                 // This may not be correct
+                // self.imm_operand(instruction, ExtendImmediate::Yes, |rs, imm| Some(rs + imm));
                 // self.imm_operand(instruction, ExtendImmediate::Yes, |rs, imm| {
                 //     let res = rs.wrapping_add(imm);
                 //     let bit31 = res & 0x8000_0000 != 0;
@@ -328,31 +379,37 @@ impl Cpu {
                     panic!("Address error exception");
                 }
                 let value = self.read_gpr(instruction.target_immediate()) as u32;
-                println!("SW {:#x} {:#x} {:#x} {:#x} {:#x}",
-                         base,
-                         vaddr,
-                         instruction.source(),
-                         (instruction.immediate() as i16) as u64,
-                         instruction);
+                // println!("SW {:#x} {:#x} {:#x} {:#x} {:#x}",
+                //          base,
+                //          vaddr,
+                //          instruction.source(),
+                //          (instruction.immediate() as i16) as u64,
+                //          instruction);
                 self.write_word(vaddr, value);
             }
         }
 
     }
 
-    fn do_branch<F>(&mut self, instruction: Instruction, f: F, clear_delay: bool)
+    fn do_branch<F>(&mut self, instruction: Instruction, f: F, clear_delay: bool) -> bool
         where F: FnOnce(u64, u64, &mut Cpu) -> bool
     {
         let rs = self.read_gpr(instruction.source());
         let rt = self.read_gpr(instruction.target_immediate());
         let branch = f(rs, rt, self);
-
         if branch {
-            let new_pc = self.reg_pc
+            let new_pc = self.new_reg
+                .reg_pc
+                .wrapping_sub(INSTRUCTION_SIZE)
                 .wrapping_add(((instruction.immediate() << 2) as i16) as u64);
-            self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
-        } else if clear_delay {
-            self.delay_slot = None;
+            self.new_reg.reg_pc = new_pc;
+            true
+            // self.reg_pc = new_pc.wrapping_sub(INSTRUCTION_SIZE);
+        } else {
+            if clear_delay {
+                self.delay_slot = None;
+            }
+            false
         }
     }
 
@@ -378,82 +435,46 @@ impl Cpu {
         self.bus.write_word(paddr as u32, value);
     }
 
-    fn print_instruction(&self, instruction: Instruction, pc: u64) {
-        print!("reg_pc {:018X}: {:#x} ", pc, instruction);
-        match instruction.opcode() {
-            SPECIAL => {
-                println!("Special: {:?}", instruction.opcode_special());
+    fn print_instruction(&self, instruction: Option<Instruction>, pc: u64) {
+        print!("RUN reg_pc {:018X}: ", pc);
+        match instruction {
+            None => {
+                println!("Empty");
             }
-            REGIMM => {
-                println!("Branch: {:?}", instruction.opcode_regimm());
+            Some(instr) => {
+                match instr.opcode() {
+                    SPECIAL => {
+                        println!("Special: {:?}", instr.opcode_special());
+                    }
+                    REGIMM => {
+                        println!("Branch: {:?}", instr.opcode_regimm());
+                    }
+                    _ => {
+                        println!("{:?}", instr.opcode());
+                    }
+                }
             }
-            _ => {
-                println!("{:?}", instruction.opcode());
-            }
-        }
-
+        };
     }
 
     fn write_gpr(&mut self, index: usize, value: u64) {
         if index != 0 {
-            if index == 0xd {
-                println!("STORE {:#x}", value);
-            }
-            self.reg_gprs[index] = value;
+            self.new_reg.reg_gprs[index] = value;
         }
     }
 
     fn read_gpr(&self, index: usize) -> u64 {
         match index {
             0 => 0,
-            _ => self.reg_gprs[index],
+            _ => self.new_reg.reg_gprs[index],
         }
     }
 }
 
 impl fmt::Debug for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const REGS_PER_LINE: usize = 2;
-        const REG_NAMES: [&'static str; NUM_GPREG] =
-            ["r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5",
-             "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1",
-             "gp", "sp", "s8", "ra"];
 
-        try!(write!(f, "\nCPU General Purpose Registers:"));
-        for reg_num in 0..NUM_GPREG {
-            if (reg_num % REGS_PER_LINE) == 0 {
-                try!(writeln!(f, ""));
-            }
-            try!(write!(f,
-                        "{reg_name}/gpr{num:02}: {value:#018X} ",
-                        num = reg_num,
-                        reg_name = REG_NAMES[reg_num],
-                        value = self.reg_gprs[reg_num]));
-        }
-
-        try!(write!(f, "\n\nCPU Floating Point Registers:"));
-        for reg_num in 0..NUM_FPREG {
-            if (reg_num % REGS_PER_LINE) == 0 {
-                try!(writeln!(f, ""));
-            }
-            try!(write!(f,
-                "fpr{num:02}: {value:21} ",
-                num = reg_num,
-                value = self.reg_fprs[reg_num],));
-        }
-
-        try!(writeln!(f, "\n\nCPU Special Registers:"));
-        try!(writeln!(f,
-                      "\
-            reg_pc: {:#018X}\nreg_hi: {:#018X}\nreg_lo: \
-                       {:#018X}\nreg_llbit: {}\nreg_fcr0:  {:#010X}\nreg_fcr31: {:#010X}\n",
-                      self.reg_pc,
-                      self.reg_hi,
-                      self.reg_lo,
-                      self.reg_llbit,
-                      self.reg_fcr0,
-                      self.reg_fcr31));
-
+        try!(writeln!(f, "{:#?}", self.reg));
         try!(writeln!(f, "{:#?}", self.cp0));
         writeln!(f, "{:#?}", self.bus)
     }

@@ -12,6 +12,7 @@ impl N64 {
         let cpu = cpu::Cpu::new(bus);
 
         N64 { cpu: cpu }
+
     }
 
     pub fn run_instruction(&mut self) {
