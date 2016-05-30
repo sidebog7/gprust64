@@ -3,6 +3,7 @@ use num::FromPrimitive;
 use super::opcode::Opcode;
 use super::opcode::OpcodeSpecial;
 use super::opcode::OpcodeRegimm;
+use super::cpu::Registers;
 
 pub const INSTRUCTION_SIZE: u64 = 4;
 
@@ -74,6 +75,9 @@ impl Instruction {
     pub fn target_register(&self) -> usize {
         self.target_immediate()
     }
+
+    #[inline(always)]
+    pub fn get_required_registers(&self) {}
 }
 
 impl fmt::Debug for Instruction {

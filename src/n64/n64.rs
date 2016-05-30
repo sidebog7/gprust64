@@ -16,6 +16,6 @@ impl N64 {
     }
 
     pub fn run_instruction(&mut self) {
-        self.cpu.run_and_inc();
+        // self.cpu.run_and_inc();
     }
 }
