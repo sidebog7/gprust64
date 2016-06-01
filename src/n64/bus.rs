@@ -28,7 +28,7 @@ pub struct Bus {
 
 impl fmt::Debug for Bus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RSP: {:#?}", self.rsp)
+        write!(f, "BUS")
     }
 }
 impl Bus {

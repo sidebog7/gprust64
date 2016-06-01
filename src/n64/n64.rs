@@ -3,7 +3,7 @@ use super::bus;
 
 #[derive(Debug)]
 pub struct N64 {
-    cpu: cpu::Cpu,
+    pub cpu: cpu::Cpu,
 }
 
 impl N64 {
@@ -16,6 +16,8 @@ impl N64 {
     }
 
     pub fn run_instruction(&mut self) {
-        // self.cpu.run_and_inc();
+        // println!("{:?}", self.cpu);
+        self.cpu.tick();
+
     }
 }

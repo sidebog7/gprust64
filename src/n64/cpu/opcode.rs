@@ -1,8 +1,17 @@
+use super::instruction::Instruction;
+use std::collections::HashMap;
+use super::registers::RegisterValues;
+
+pub enum Type {
+    ITYPE,
+    RTYPE,
+    JTYPE,
+}
 
 enum_from_primitive! {
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone)]
     pub enum Opcode {
-        SPECIAL = 0b000000,
+        SPECIAL= 0b000000,
         REGIMM = 0b000001,
         MTC0 = 0b010000,
         ADDI = 0b001000,
@@ -20,7 +29,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone)]
     pub enum OpcodeSpecial {
         SLL = 0b000000,
         SRL = 0b000010,
@@ -40,8 +49,46 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone)]
     pub enum OpcodeRegimm {
         BGEZAL = 0b10001,
+    }
+}
+
+impl Opcode {
+    pub fn ex_phase1(&self, reg_values: RegisterValues, imm_value: u16) {
+        println!("{:?}", self);
+        match *self {
+            Opcode::LUI => {
+                println!("IMM!! {:?}", imm_value);
+            }
+            _ => panic!("Unknown"),
+        }
+    }
+
+    pub fn ex_phase2(&self, reg: RegisterValues, imm_value: u16) -> RegisterValues {
+        match *self {
+            Opcode::LUI => RegisterValues::target((((imm_value as u32) << 16) as i32) as u64),
+            _ => panic!("Unknown"),
+        }
+    }
+}
+
+impl OpcodeSpecial {
+    pub fn ex_phase1(&self, reg: RegisterValues) {}
+
+    pub fn ex_phase2(&self, reg: RegisterValues) {}
+}
+
+impl OpcodeRegimm {
+    pub fn ex_phase1(&self, reg: RegisterValues) {}
+
+    pub fn ex_phase2(&self, reg: RegisterValues) {}
+}
+
+pub fn get_type(instr: Instruction) -> Type {
+    match instr.opcode() {
+        Opcode::LUI => Type::ITYPE,
+        _ => panic!("Don't know how we got here"),
     }
 }

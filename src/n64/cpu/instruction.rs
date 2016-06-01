@@ -1,9 +1,11 @@
 use std::fmt;
 use num::FromPrimitive;
-use super::opcode::Opcode;
-use super::opcode::OpcodeSpecial;
-use super::opcode::OpcodeRegimm;
-use super::cpu::Registers;
+use super::registers::RegistersUsed;
+use super::opcode::*;
+// use super::opcode::Type;
+// use super::opcode::Opcode;
+// use super::opcode::OpcodeSpecial;
+// use super::opcode::OpcodeRegimm;
 
 pub const INSTRUCTION_SIZE: u64 = 4;
 
@@ -76,8 +78,17 @@ impl Instruction {
         self.target_immediate()
     }
 
+
     #[inline(always)]
-    pub fn get_required_registers(&self) {}
+    pub fn get_required_registers(&self) -> RegistersUsed {
+        match get_type(*self) {
+            Type::ITYPE => RegistersUsed::itype(self.target_immediate(), self.source()),
+            Type::RTYPE => {
+                RegistersUsed::rtype(self.target_immediate(), self.source(), self.destination())
+            }
+            Type::JTYPE => RegistersUsed::jtype(),
+        }
+    }
 }
 
 impl fmt::Debug for Instruction {
