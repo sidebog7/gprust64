@@ -27,7 +27,6 @@ pub struct DataWrite {
 
 #[derive(Debug)]
 pub struct Pipeline {
-    id: usize,
     stage: PipelineStage,
     stalled: u8,
     instruction: Option<Instruction>,
@@ -37,9 +36,8 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(id: usize) -> Pipeline {
+    pub fn new() -> Pipeline {
         Pipeline {
-            id: id,
             stage: PipelineStage::IF(1),
             stalled: 0,
             instruction: None,
@@ -57,7 +55,7 @@ impl Pipeline {
         if self.stalled > 0 {
             self.stalled -= 1;
         } else {
-            println!("RUNNING {} stage {:?}", self.id, self.stage);
+            println!("RUNNING stage {:?}", self.stage);
             match self.stage {
                 PipelineStage::IF(phase) => {
                     match phase {

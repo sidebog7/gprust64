@@ -3,6 +3,7 @@ extern crate byteorder;
 #[macro_use]
 extern crate enum_primitive;
 extern crate num;
+extern crate time;
 extern crate clap;
 
 mod n64;

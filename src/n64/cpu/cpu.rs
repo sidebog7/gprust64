@@ -72,9 +72,8 @@ impl Cpu {
 
     }
     pub fn setup_pipeline(&mut self) {
-        let len = self.pipelines.len();
-        if len < PIPELINE_LENGTH {
-            let pl = Pipeline::new(len);
+        if self.pipelines.len() < PIPELINE_LENGTH {
+            let pl = Pipeline::new();
             self.pipelines.push_back(pl);
         }
     }

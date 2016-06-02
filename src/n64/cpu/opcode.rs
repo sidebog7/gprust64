@@ -79,7 +79,16 @@ impl Opcode {
                      -> RegistersUsed {
         println!("EXECUTING {:?}", self);
         match *self {
-            Opcode::LUI => reg_values.with_output((((imm_value as u32) << 16) as i32) as u64),
+            Opcode::LUI => {
+                println!("IMM = {:#x} to {:#x}",
+                         imm_value,
+                         (((imm_value as u32) << 16) as i32) as u64);
+                reg_values.with_output((((imm_value as u32) << 16) as i32) as u64)
+            }
+            Opcode::ORI => {
+                let imm_ext = imm_value as u64;
+                reg_values.with_output(imm_ext | reg_values.rs_val.unwrap())
+            }
             Opcode::MTC0 => {
                 output_data.cp0_data_register = Some(reg_values.rd.unwrap());
                 output_data.cp0_data_to_write = reg_values.rt_val.unwrap();
@@ -100,7 +109,7 @@ impl Opcode {
 pub fn get_type(instr: Instruction) -> Type {
     let opcode = instr.opcode();
     match opcode {
-        Opcode::LUI => Type::ITYPE,
+        Opcode::LUI | Opcode::ORI | Opcode::LW => Type::ITYPE,
         Opcode::MTC0 => Type::RTYPECP,
         _ => panic!("Don't know how we got here {:?}", opcode),
     }
