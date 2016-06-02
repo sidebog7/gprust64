@@ -44,14 +44,24 @@ impl Instruction {
     }
 
     #[inline(always)]
+    pub fn opcode_coproc(&self) -> OpcodeCoproc {
+        let opcode = self.get_bits(21, 5) as u8;
+        OpcodeCoproc::from_u8(opcode).unwrap_or_else(|| {
+            panic!("Unrecognised coproc opcode {:#x} op: {:#08b}",
+                   self.0,
+                   opcode)
+        })
+    }
+
+    #[inline(always)]
     pub fn immediate(&self) -> u16 {
         self.get_bits(0, 16) as u16
     }
 
-    #[inline(always)]
-    pub fn immediate_extend(&self) -> u64 {
-        (self.immediate() as i16) as u64
-    }
+    // #[inline(always)]
+    // pub fn immediate_extend(&self) -> u64 {
+    //     (self.immediate() as i16) as u64
+    // }
 
     #[inline(always)]
     pub fn source(&self) -> usize {
@@ -63,10 +73,10 @@ impl Instruction {
         self.get_bits(11, 5) as usize
     }
 
-    #[inline(always)]
-    pub fn shift_amount(&self) -> u8 {
-        self.get_bits(6, 5) as u8
-    }
+    // #[inline(always)]
+    // pub fn shift_amount(&self) -> u8 {
+    //     self.get_bits(6, 5) as u8
+    // }
 
     #[inline(always)]
     pub fn target_immediate(&self) -> usize {
@@ -83,6 +93,7 @@ impl Instruction {
     pub fn get_required_registers(&self) -> RegistersUsed {
         match get_type(*self) {
             Type::ITYPE => RegistersUsed::itype(self.target_immediate(), self.source()),
+            Type::RTYPE_CP => RegistersUsed::rtypecp(self.target_register(), self.destination()),
             Type::RTYPE => {
                 RegistersUsed::rtype(self.target_immediate(), self.source(), self.destination())
             }

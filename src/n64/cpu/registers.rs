@@ -6,8 +6,13 @@ const NUM_FPREG: usize = 32;
 #[derive(Debug, Copy, Clone)]
 pub struct RegistersUsed {
     pub rt: Option<usize>,
+    rt_val: Option<u64>,
+
     rs: Option<usize>,
+    rs_val: Option<u64>,
+
     rd: Option<usize>,
+    rd_val: Option<u64>,
 }
 
 impl RegistersUsed {
@@ -16,6 +21,9 @@ impl RegistersUsed {
             rt: Some(rt),
             rs: Some(rs),
             rd: None,
+            rt_val: None,
+            rs_val: None,
+            rd_val: None,
         }
     }
 
@@ -24,6 +32,20 @@ impl RegistersUsed {
             rt: Some(rt),
             rs: Some(rs),
             rd: Some(rd),
+            rt_val: None,
+            rs_val: None,
+            rd_val: None,
+        }
+    }
+
+    pub fn rtypecp(rt: usize, rd: usize) -> RegistersUsed {
+        RegistersUsed {
+            rt: Some(rt),
+            rs: None,
+            rd: Some(rd),
+            rt_val: None,
+            rs_val: None,
+            rd_val: None,
         }
     }
 
@@ -32,48 +54,81 @@ impl RegistersUsed {
             rt: None,
             rs: None,
             rd: None,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct RegisterValues {
-    rt: Option<u64>,
-    rs: Option<u64>,
-    rd: Option<u64>,
-}
-
-
-impl RegisterValues {
-    pub fn new(used: &RegistersUsed, reg: Registers) -> RegisterValues {
-        RegisterValues {
-            rt: match used.rt {
-                Some(r) => Some(reg.get_gpr_val(r)),
-                _ => None,
-            },
-            rs: match used.rs {
-                Some(r) => Some(reg.get_gpr_val(r)),
-                _ => None,
-            },
-            rd: match used.rs {
-                Some(r) => Some(reg.get_gpr_val(r)),
-                _ => None,
-            },
+            rt_val: None,
+            rs_val: None,
+            rd_val: None,
         }
     }
 
-    pub fn target(value: u64) -> RegisterValues {
-        RegisterValues {
-            rt: Some(value),
-            rs: None,
-            rd: None,
+    pub fn process(&mut self, reg: Registers) {
+        match self.rt {
+            Some(r) => self.rt_val = Some(reg.get_gpr_val(r)),
+            _ => {}
+        }
+        match self.rs {
+            Some(r) => self.rs_val = Some(reg.get_gpr_val(r)),
+            _ => {}
+        }
+        match self.rd {
+            Some(r) => self.rd_val = Some(reg.get_gpr_val(r)),
+            _ => {}
         }
     }
 
-    pub fn get_target_value(&self) -> u64 {
-        self.rt.unwrap_or_else(|| panic!("Unknown target value {:?}", self))
+    pub fn with_target(&self, value: u64) -> RegistersUsed {
+        RegistersUsed {
+            rt: self.rt,
+            rt_val: Some(value),
+            rs: self.rs,
+            rs_val: self.rs_val,
+            rd: self.rd,
+            rd_val: self.rd_val,
+        }
+    }
+
+    pub fn get_target_value(&self) -> Option<u64> {
+        self.rt_val
     }
 }
+
+// #[derive(Debug, Copy, Clone)]
+// pub struct RegisterValues {
+//     rt: Option<u64>,
+//     rs: Option<u64>,
+//     rd: Option<u64>,
+// }
+//
+//
+// impl RegisterValues {
+//     pub fn new(used: &RegistersUsed, reg: Registers) -> RegisterValues {
+//         RegisterValues {
+//             rt: match used.rt {
+//                 Some(r) => Some(reg.get_gpr_val(r)),
+//                 _ => None,
+//             },
+//             rs: match used.rs {
+//                 Some(r) => Some(reg.get_gpr_val(r)),
+//                 _ => None,
+//             },
+//             rd: match used.rs {
+//                 Some(r) => Some(reg.get_gpr_val(r)),
+//                 _ => None,
+//             },
+//         }
+//     }
+//
+//     pub fn target(value: u64) -> RegisterValues {
+//         RegisterValues {
+//             rt: Some(value),
+//             rs: None,
+//             rd: None,
+//         }
+//     }
+//
+//     pub fn get_target_value(&self) -> u64 {
+//         self.rt.unwrap_or_else(|| panic!("Unknown target value {:?}", self))
+//     }
+// }
 
 #[derive(Default, Clone, Copy)]
 pub struct Registers {

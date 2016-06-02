@@ -1,10 +1,11 @@
 use super::instruction::Instruction;
 use std::collections::HashMap;
-use super::registers::RegisterValues;
+use super::registers::RegistersUsed;
 
 pub enum Type {
     ITYPE,
     RTYPE,
+    RTYPE_CP,
     JTYPE,
 }
 
@@ -13,7 +14,7 @@ enum_from_primitive! {
     pub enum Opcode {
         SPECIAL= 0b000000,
         REGIMM = 0b000001,
-        MTC0 = 0b010000,
+        COPROC = 0b010000,
         ADDI = 0b001000,
         ADDIU = 0b001001,
         ANDI = 0b001100,
@@ -55,40 +56,59 @@ enum_from_primitive! {
     }
 }
 
+enum_from_primitive! {
+    #[derive(Debug, Copy, Clone)]
+    pub enum OpcodeCoproc {
+        MTC0 = 0b00100,
+    }
+}
+
 impl Opcode {
-    pub fn ex_phase1(&self, reg_values: RegisterValues, imm_value: u16) {
-        println!("{:?}", self);
+    pub fn ex_phase1(&self, reg_values: RegistersUsed, imm_value: u16) -> RegistersUsed {
+        println!("EXECUTING {:?}", self);
         match *self {
-            Opcode::LUI => {
-                println!("IMM!! {:?}", imm_value);
-            }
+            Opcode::LUI => reg_values.with_target((((imm_value as u32) << 16) as i32) as u64),
             _ => panic!("Unknown"),
         }
     }
 
-    pub fn ex_phase2(&self, reg: RegisterValues, imm_value: u16) -> RegisterValues {
+    pub fn ex_phase2(&self, reg: RegistersUsed, imm_value: u16) {
         match *self {
-            Opcode::LUI => RegisterValues::target((((imm_value as u32) << 16) as i32) as u64),
+            Opcode::LUI => {}
             _ => panic!("Unknown"),
         }
     }
 }
 
 impl OpcodeSpecial {
-    pub fn ex_phase1(&self, reg: RegisterValues) {}
+    pub fn ex_phase1(&self, reg: RegistersUsed) {}
 
-    pub fn ex_phase2(&self, reg: RegisterValues) {}
+    pub fn ex_phase2(&self, reg: RegistersUsed) {}
 }
 
 impl OpcodeRegimm {
-    pub fn ex_phase1(&self, reg: RegisterValues) {}
+    pub fn ex_phase1(&self, reg: RegistersUsed) {}
 
-    pub fn ex_phase2(&self, reg: RegisterValues) {}
+    pub fn ex_phase2(&self, reg: RegistersUsed) {}
+}
+
+impl OpcodeCoproc {
+    pub fn ex_phase1(&self, reg: RegistersUsed) {
+        println!("EXECUTING {:?}", self);
+    }
+
+    pub fn ex_phase2(&self, reg: RegistersUsed) {}
 }
 
 pub fn get_type(instr: Instruction) -> Type {
-    match instr.opcode() {
+    let opcode = instr.opcode();
+    match opcode {
         Opcode::LUI => Type::ITYPE,
-        _ => panic!("Don't know how we got here"),
+        Opcode::COPROC => {
+            match instr.opcode_coproc() {
+                OpcodeCoproc::MTC0 => Type::RTYPE_CP,
+            }
+        }
+        _ => panic!("Don't know how we got here {:?}", opcode),
     }
 }

@@ -9,6 +9,7 @@ use super::interface::serial::Serial;
 use super::interface::cartridge::Cartridge;
 use super::interface::drawing::Drawing;
 use super::interface::rdram::Rdram;
+use super::cpu::virtual_address::VAddr;
 use std::fmt;
 
 // const RAM_SIZE: usize = 4 * 1024 * 1024;
@@ -47,7 +48,10 @@ impl Bus {
         }
     }
 
-    pub fn read_word(&self, addr: u32) -> u32 {
+    pub fn read_word(&self, vaddr: VAddr) -> u32 {
+        let addr = vaddr.to_paddr();
+
+
         match map_addr(addr) {
             Addr::RDRAM(rel_addr) => self.rdram.read_mem(rel_addr),
             Addr::RDRAMREG(rel_addr) => self.rdram.read_reg(rel_addr),
@@ -63,7 +67,8 @@ impl Bus {
         }
     }
 
-    pub fn write_word(&mut self, addr: u32, value: u32) {
+    pub fn write_word(&mut self, vaddr: VAddr, value: u32) {
+        let addr = vaddr.to_paddr();
         match map_addr(addr) {
             Addr::RDRAM(rel_addr) => self.rdram.write_mem(rel_addr, value),
             Addr::RDRAMREG(rel_addr) => self.rdram.write_reg(rel_addr, value),
