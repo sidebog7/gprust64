@@ -1,6 +1,6 @@
 use super::instruction::Instruction;
-use std::collections::HashMap;
 use super::registers::RegistersUsed;
+use super::pipeline::DataWrite;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -72,18 +72,27 @@ enum_from_primitive! {
 // }
 
 impl Opcode {
-    pub fn ex_phase1(&self, reg_values: RegistersUsed, imm_value: u16) -> RegistersUsed {
+    pub fn ex_phase1(&self,
+                     reg_values: RegistersUsed,
+                     imm_value: u16,
+                     output_data: &mut DataWrite)
+                     -> RegistersUsed {
         println!("EXECUTING {:?}", self);
         match *self {
             Opcode::LUI => reg_values.with_output((((imm_value as u32) << 16) as i32) as u64),
-            _ => panic!("Unknown"),
+            Opcode::MTC0 => {
+                output_data.cp0_data_register = Some(reg_values.rd.unwrap());
+                output_data.cp0_data_to_write = reg_values.rt_val.unwrap();
+                println!("Gonna write {:?}", output_data);
+                reg_values
+            }
+            _ => panic!("Unknown phase 1 execution {:?}", self),
         }
     }
 
-    pub fn ex_phase2(&self, reg: RegistersUsed, imm_value: u16) {
+    pub fn ex_phase2(&self, reg: RegistersUsed, imm_value: u16) -> RegistersUsed {
         match *self {
-            Opcode::LUI => {}
-            _ => panic!("Unknown"),
+            _ => reg,
         }
     }
 }

@@ -8,13 +8,13 @@ const NUM_FPREG: usize = 32;
 pub struct RegistersUsed {
     rtype: Type,
     pub rt: Option<usize>,
-    rt_val: Option<u64>,
+    pub rt_val: Option<u64>,
 
-    rs: Option<usize>,
-    rs_val: Option<u64>,
+    pub rs: Option<usize>,
+    pub rs_val: Option<u64>,
 
-    rd: Option<usize>,
-    rd_val: Option<u64>,
+    pub rd: Option<usize>,
+    pub rd_val: Option<u64>,
 }
 
 impl RegistersUsed {
@@ -89,7 +89,6 @@ impl RegistersUsed {
                         if reg == reg2 {
 
                             self.rt_val = regs.get_output_value();
-                            println!("SETTING RT {:?} {:p}", self.rt_val, self);
                         }
                     }
                     _ => {}

@@ -17,6 +17,14 @@ enum PipelineStage {
     COMPLETE(u8),
 }
 
+#[derive(Default, Debug)]
+pub struct DataWrite {
+    pub cp0_data_register: Option<usize>,
+    pub cp0_data_to_write: u64,
+}
+
+
+
 #[derive(Debug)]
 pub struct Pipeline {
     id: usize,
@@ -24,8 +32,8 @@ pub struct Pipeline {
     stalled: u8,
     instruction: Option<Instruction>,
     opcode: Option<Opcode>,
-    result: Option<u64>,
     pub reg_used: Option<RegistersUsed>,
+    output_data: DataWrite,
 }
 
 impl Pipeline {
@@ -36,8 +44,8 @@ impl Pipeline {
             stalled: 0,
             instruction: None,
             opcode: None,
-            result: None,
             reg_used: None,
+            output_data: DataWrite::default(),
         }
     }
 
@@ -99,7 +107,7 @@ impl Pipeline {
                 PipelineStage::WB(phase) => {
                     match phase {
                         1 => {
-                            self.wb_stage_phase1(reg);
+                            self.wb_stage_phase1(reg, cp0);
                         }
                         2 => {
                             self.wb_stage_phase2();
@@ -120,7 +128,7 @@ impl Pipeline {
                 let mut new_reg = self.reg_used.unwrap();
                 new_reg.process_forwarding(regs);
                 self.reg_used = Some(new_reg);
-                println!("COMPLETE {:?} {:p}", self.reg_used, &self.reg_used.unwrap());
+                println!("COMPLETE {:?}", self.reg_used);
             }
             None => {}
         }
@@ -164,15 +172,15 @@ impl Pipeline {
     }
 
     fn ex_stage_phase1(&mut self) {
-        println!("PHASE1 {:p}", self);
         match self.instruction {
             Some(instr) => {
                 match self.opcode {
                     Some(opcode) => {
                         let reg_values = self.reg_used.unwrap();
-
+                        println!("USING {:?}", reg_values);
                         let imm_value = instr.immediate();
-                        self.reg_used = Some(opcode.ex_phase1(reg_values, imm_value));
+                        self.reg_used =
+                            Some(opcode.ex_phase1(reg_values, imm_value, &mut self.output_data));
                         println!("Storing {:?}", self.reg_used);
                     }
                     _ => {}
@@ -182,15 +190,37 @@ impl Pipeline {
         }
     }
 
-    fn ex_stage_phase2(&self) {}
+    fn ex_stage_phase2(&mut self) {
+        match self.instruction {
+            Some(instr) => {
+                match self.opcode {
+                    Some(opcode) => {
+                        let reg_values = self.reg_used.unwrap();
+
+                        let imm_value = instr.immediate();
+                        self.reg_used = Some(opcode.ex_phase2(reg_values, imm_value));
+                        println!("Storing {:?}", self.reg_used);
+                    }
+                    _ => {}
+                }
+            }
+            None => {}
+        }
+    }
 
     fn dc_stage_phase1(&self) {}
 
     fn dc_stage_phase2(&self) {}
 
-    fn wb_stage_phase1(&mut self, reg: &mut Registers) {
+    fn wb_stage_phase1(&mut self, reg: &mut Registers, cp0: &mut CP0) {
         println!("Write {:?}", self.reg_used);
 
+        match self.output_data.cp0_data_register {
+            Some(reg) => {
+                cp0.write_reg(reg, self.output_data.cp0_data_to_write);
+            }
+            None => {}
+        }
         match self.reg_used {
             Some(values) => {
                 let rt = self.reg_used.unwrap().rt.unwrap();
@@ -203,6 +233,8 @@ impl Pipeline {
             }
             _ => {}
         }
+
+
     }
 
     fn wb_stage_phase2(&self) {}
