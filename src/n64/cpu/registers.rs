@@ -1,10 +1,12 @@
 use std::fmt;
+use super::opcode::Type;
 
 const NUM_GPREG: usize = 32;
 const NUM_FPREG: usize = 32;
 
 #[derive(Debug, Copy, Clone)]
 pub struct RegistersUsed {
+    rtype: Type,
     pub rt: Option<usize>,
     rt_val: Option<u64>,
 
@@ -18,6 +20,7 @@ pub struct RegistersUsed {
 impl RegistersUsed {
     pub fn itype(rt: usize, rs: usize) -> RegistersUsed {
         RegistersUsed {
+            rtype: Type::ITYPE,
             rt: Some(rt),
             rs: Some(rs),
             rd: None,
@@ -29,6 +32,7 @@ impl RegistersUsed {
 
     pub fn rtype(rt: usize, rs: usize, rd: usize) -> RegistersUsed {
         RegistersUsed {
+            rtype: Type::RTYPE,
             rt: Some(rt),
             rs: Some(rs),
             rd: Some(rd),
@@ -40,6 +44,7 @@ impl RegistersUsed {
 
     pub fn rtypecp(rt: usize, rd: usize) -> RegistersUsed {
         RegistersUsed {
+            rtype: Type::RTYPECP,
             rt: Some(rt),
             rs: None,
             rd: Some(rd),
@@ -51,6 +56,7 @@ impl RegistersUsed {
 
     pub fn jtype() -> RegistersUsed {
         RegistersUsed {
+            rtype: Type::JTYPE,
             rt: None,
             rs: None,
             rd: None,
@@ -75,14 +81,64 @@ impl RegistersUsed {
         }
     }
 
-    pub fn with_target(&self, value: u64) -> RegistersUsed {
+    pub fn process_forwarding(&mut self, regs: RegistersUsed) {
+        match regs.get_output_register() {
+            Some(reg) => {
+                match self.rt {
+                    Some(reg2) => {
+                        if reg == reg2 {
+
+                            self.rt_val = regs.get_output_value();
+                            println!("SETTING RT {:?} {:p}", self.rt_val, self);
+                        }
+                    }
+                    _ => {}
+                }
+                match self.rs {
+                    Some(reg2) => {
+                        if reg == reg2 {
+                            self.rs_val = regs.get_output_value();
+                            println!("SETTING RS {:?}", self.rs_val);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None => {}
+        }
+    }
+
+    pub fn with_output(&self, value: u64) -> RegistersUsed {
         RegistersUsed {
+            rtype: self.rtype,
             rt: self.rt,
-            rt_val: Some(value),
+            rt_val: match self.rtype {
+                Type::ITYPE => Some(value),
+                _ => self.rt_val,
+            },
             rs: self.rs,
             rs_val: self.rs_val,
             rd: self.rd,
-            rd_val: self.rd_val,
+            rd_val: match self.rtype {
+                Type::RTYPE | Type::RTYPECP => Some(value),
+                _ => self.rd_val,
+            },
+        }
+    }
+
+    fn get_output_register(&self) -> Option<usize> {
+        match self.rtype {
+            Type::RTYPE | Type::RTYPECP => self.rd,
+            Type::ITYPE => self.rt,
+            _ => None,
+        }
+    }
+
+    fn get_output_value(&self) -> Option<u64> {
+        match self.rtype {
+            Type::RTYPE | Type::RTYPECP => self.rd_val,
+            Type::ITYPE => self.rt_val,
+            _ => None,
         }
     }
 

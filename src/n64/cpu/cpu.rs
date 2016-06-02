@@ -48,7 +48,7 @@ impl Cpu {
 
         let mut last_used: Option<RegistersUsed> = None;
         for pl in self.pipelines.iter_mut() {
-            println!("LASTUSED {:?}", last_used);
+
             pl.run_cycle(&mut self.reg, &mut self.bus, &mut self.cp0, last_used);
 
             last_used = pl.reg_used;
@@ -72,8 +72,9 @@ impl Cpu {
 
     }
     pub fn setup_pipeline(&mut self) {
-        if self.pipelines.len() < PIPELINE_LENGTH {
-            let pl = Pipeline::new();
+        let len = self.pipelines.len();
+        if len < PIPELINE_LENGTH {
+            let pl = Pipeline::new(len);
             self.pipelines.push_back(pl);
         }
     }

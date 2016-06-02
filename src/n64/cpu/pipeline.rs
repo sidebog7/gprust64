@@ -2,9 +2,6 @@ use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
 use super::opcode::Opcode;
-use super::opcode::OpcodeSpecial;
-use super::opcode::OpcodeRegimm;
-use super::opcode::OpcodeCoproc;
 use super::registers::Registers;
 use super::registers::RegistersUsed;
 use super::virtual_address::VAddr;
@@ -22,27 +19,23 @@ enum PipelineStage {
 
 #[derive(Debug)]
 pub struct Pipeline {
+    id: usize,
     stage: PipelineStage,
-    stalled: bool,
+    stalled: u8,
     instruction: Option<Instruction>,
     opcode: Option<Opcode>,
-    opcode_special: Option<OpcodeSpecial>,
-    opcode_regimm: Option<OpcodeRegimm>,
-    opcode_coproc: Option<OpcodeCoproc>,
     result: Option<u64>,
     pub reg_used: Option<RegistersUsed>,
 }
 
 impl Pipeline {
-    pub fn new() -> Pipeline {
+    pub fn new(id: usize) -> Pipeline {
         Pipeline {
+            id: id,
             stage: PipelineStage::IF(1),
-            stalled: false,
+            stalled: 0,
             instruction: None,
             opcode: None,
-            opcode_special: None,
-            opcode_regimm: None,
-            opcode_coproc: None,
             result: None,
             reg_used: None,
         }
@@ -53,7 +46,10 @@ impl Pipeline {
                      bus: &mut bus::Bus,
                      cp0: &mut CP0,
                      prev_reg: Option<RegistersUsed>) {
-        if !self.stalled {
+        if self.stalled > 0 {
+            self.stalled -= 1;
+        } else {
+            println!("RUNNING {} stage {:?}", self.id, self.stage);
             match self.stage {
                 PipelineStage::IF(phase) => {
                     match phase {
@@ -78,6 +74,7 @@ impl Pipeline {
                     }
                 }
                 PipelineStage::EX(phase) => {
+                    self.check_forwarding(prev_reg);
                     match phase {
                         1 => {
                             self.ex_stage_phase1();
@@ -116,6 +113,19 @@ impl Pipeline {
         }
     }
 
+    fn check_forwarding(&mut self, prev_reg: Option<RegistersUsed>) {
+        match prev_reg {
+            Some(regs) => {
+                println!("Processing forwading {:?}", regs);
+                let mut new_reg = self.reg_used.unwrap();
+                new_reg.process_forwarding(regs);
+                self.reg_used = Some(new_reg);
+                println!("COMPLETE {:?} {:p}", self.reg_used, &self.reg_used.unwrap());
+            }
+            None => {}
+        }
+    }
+
     fn if_stage_phase1(&mut self) {
         // Phase 1
     }
@@ -145,23 +155,6 @@ impl Pipeline {
                 let opcode = instr.opcode();
 
                 self.opcode = Some(opcode);
-                match opcode {
-                    Opcode::SPECIAL => {
-                        self.opcode_special = Some(instr.opcode_special());
-                    }
-                    Opcode::REGIMM => {
-                        self.opcode_regimm = Some(instr.opcode_regimm());
-                    }
-                    Opcode::COPROC => {
-                        self.opcode_coproc = Some(instr.opcode_coproc());
-                    }
-                    _ => {}
-                }
-                println!("Store {:?},{:?},{:?},{:?}",
-                         self.opcode,
-                         self.opcode_special,
-                         self.opcode_regimm,
-                         self.opcode_coproc);
                 // VAddr Calc
 
 
@@ -177,21 +170,10 @@ impl Pipeline {
                 match self.opcode {
                     Some(opcode) => {
                         let reg_values = self.reg_used.unwrap();
-                        match opcode {
-                            Opcode::SPECIAL => {
-                                self.opcode_special.unwrap().ex_phase1(reg_values);
-                            }
-                            Opcode::REGIMM => {
-                                self.opcode_regimm.unwrap().ex_phase1(reg_values);
-                            }
-                            Opcode::COPROC => {
-                                self.opcode_coproc.unwrap().ex_phase1(reg_values);
-                            }
-                            _ => {
-                                let imm_value = instr.immediate();
-                                self.reg_used = Some(opcode.ex_phase1(reg_values, imm_value));
-                            }
-                        }
+
+                        let imm_value = instr.immediate();
+                        self.reg_used = Some(opcode.ex_phase1(reg_values, imm_value));
+                        println!("Storing {:?}", self.reg_used);
                     }
                     _ => {}
                 }

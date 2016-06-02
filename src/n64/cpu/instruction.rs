@@ -20,38 +20,41 @@ impl Instruction {
 
     #[inline(always)]
     pub fn opcode(&self) -> Opcode {
-        let opcode = self.get_bits(26, 6) as u8;
-        Opcode::from_u8(opcode)
-            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#08b}", self.0, opcode))
+        let opcode_val = self.get_bits(26, 6) as u16;
+        let opcode = Opcode::from_u16(opcode_val)
+            .unwrap_or_else(|| panic!("Unrecognised opcode {:#x} op: {:#08b}", self.0, opcode_val));
+        match opcode {
+            Opcode::SPECIAL => {
+                let opcode_special_val = self.get_bits(0, 6) as u16 | 0b11000000;
+                let opcode_special = Opcode::from_u16(opcode_special_val);
+                opcode_special.unwrap_or_else(|| {
+                    panic!("Unrecognised opcode {:#x} op: {:#13b}",
+                           self.0,
+                           opcode_special_val)
+                })
+            }
+            Opcode::REGIMM => {
+                let opcode_regimm_val = self.get_bits(16, 5) as u16 | 0b111100000;
+                let opcode_regimm = Opcode::from_u16(opcode_regimm_val);
+                opcode_regimm.unwrap_or_else(|| {
+                    panic!("Unrecognised opcode {:#x} op: {:#08b}",
+                           self.0,
+                           opcode_regimm_val)
+                })
+            }
+            Opcode::COPROC => {
+                let opcode_coproc_val = self.get_bits(21, 5) as u16 | 0b1111100000;
+                let opcode_coproc = Opcode::from_u16(opcode_coproc_val);
+                opcode_coproc.unwrap_or_else(|| {
+                    panic!("Unrecognised opcode {:#x} op: {:#12b}",
+                           self.0,
+                           opcode_coproc_val)
+                })
+            }
+            _ => opcode,
+        }
     }
 
-    #[inline(always)]
-    pub fn opcode_special(&self) -> OpcodeSpecial {
-        let opcode = self.get_bits(0, 6) as u8;
-        OpcodeSpecial::from_u8(opcode).unwrap_or_else(|| {
-            panic!("Unrecognised special opcode {:#x} op: {:#08b}",
-                   self.0,
-                   opcode)
-        })
-    }
-
-
-    #[inline(always)]
-    pub fn opcode_regimm(&self) -> OpcodeRegimm {
-        let opcode = self.get_bits(16, 5) as u8;
-        OpcodeRegimm::from_u8(opcode)
-            .unwrap_or_else(|| panic!("Unrecognised bal opcode {:#x} op: {:#08b}", self.0, opcode))
-    }
-
-    #[inline(always)]
-    pub fn opcode_coproc(&self) -> OpcodeCoproc {
-        let opcode = self.get_bits(21, 5) as u8;
-        OpcodeCoproc::from_u8(opcode).unwrap_or_else(|| {
-            panic!("Unrecognised coproc opcode {:#x} op: {:#08b}",
-                   self.0,
-                   opcode)
-        })
-    }
 
     #[inline(always)]
     pub fn immediate(&self) -> u16 {
@@ -93,7 +96,7 @@ impl Instruction {
     pub fn get_required_registers(&self) -> RegistersUsed {
         match get_type(*self) {
             Type::ITYPE => RegistersUsed::itype(self.target_immediate(), self.source()),
-            Type::RTYPE_CP => RegistersUsed::rtypecp(self.target_register(), self.destination()),
+            Type::RTYPECP => RegistersUsed::rtypecp(self.target_register(), self.destination()),
             Type::RTYPE => {
                 RegistersUsed::rtype(self.target_immediate(), self.source(), self.destination())
             }
@@ -104,12 +107,7 @@ impl Instruction {
 
 impl fmt::Debug for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Opcode: {:?}", self.opcode()).unwrap();
-        match self.opcode() {
-            Opcode::SPECIAL => write!(f, ", Special: {:?}", self.opcode_special()),
-            Opcode::REGIMM => write!(f, ", BAL: {:?}", self.opcode_regimm()),
-            _ => write!(f, ""),
-        }
+        write!(f, "Opcode: {:?}", self.opcode())
     }
 }
 
