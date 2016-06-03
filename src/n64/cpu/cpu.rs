@@ -41,7 +41,7 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) {
-        println!("Tick {}", self.pcycle_phase);
+        // println!("Tick {}", self.pcycle_phase);
         if self.pcycle_phase % 2 == 0 {
             self.setup_pipeline();
         }
@@ -73,8 +73,7 @@ impl Cpu {
     }
     pub fn setup_pipeline(&mut self) {
         if self.pipelines.len() < PIPELINE_LENGTH {
-            let pl = Pipeline::new();
-            self.pipelines.push_back(pl);
+            self.pipelines.push_back(Pipeline::new());
         }
     }
 }

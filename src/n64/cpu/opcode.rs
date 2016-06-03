@@ -1,6 +1,7 @@
 use super::instruction::Instruction;
 use super::registers::RegistersUsed;
 use super::pipeline::DataWrite;
+use super::virtual_address::VAddr;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -77,12 +78,12 @@ impl Opcode {
                      imm_value: u16,
                      output_data: &mut DataWrite)
                      -> RegistersUsed {
-        println!("EXECUTING {:?}", self);
+        // println!("EXECUTING {:?}", self);
         match *self {
             Opcode::LUI => {
-                println!("IMM = {:#x} to {:#x}",
-                         imm_value,
-                         (((imm_value as u32) << 16) as i32) as u64);
+                // println!("IMM = {:#x} to {:#x}",
+                //          imm_value,
+                //          (((imm_value as u32) << 16) as i32) as u64);
                 reg_values.with_output((((imm_value as u32) << 16) as i32) as u64)
             }
             Opcode::ORI => {
@@ -92,8 +93,22 @@ impl Opcode {
             Opcode::MTC0 => {
                 output_data.cp0_data_register = Some(reg_values.rd.unwrap());
                 output_data.cp0_data_to_write = reg_values.rt_val.unwrap();
-                println!("Gonna write {:?}", output_data);
+                // println!("Gonna write {:?}", output_data);
                 reg_values
+            }
+            Opcode::LW => {
+                let imm_ext = (imm_value as i16) as u64;
+                let vaddr = reg_values.rs_val.unwrap().wrapping_add(imm_ext);
+                if vaddr & 0b11 != 0 {
+                    panic!("Address error exception");
+                }
+                output_data.vaddr = VAddr(vaddr);
+
+                reg_values
+            }
+            Opcode::ANDI => {
+                let imm_ext = imm_value as u64;
+                reg_values.with_output(imm_ext & reg_values.rs_val.unwrap())
             }
             _ => panic!("Unknown phase 1 execution {:?}", self),
         }
@@ -109,7 +124,7 @@ impl Opcode {
 pub fn get_type(instr: Instruction) -> Type {
     let opcode = instr.opcode();
     match opcode {
-        Opcode::LUI | Opcode::ORI | Opcode::LW => Type::ITYPE,
+        Opcode::LUI | Opcode::ORI | Opcode::LW | Opcode::ANDI | Opcode::BEQL => Type::ITYPE,
         Opcode::MTC0 => Type::RTYPECP,
         _ => panic!("Don't know how we got here {:?}", opcode),
     }

@@ -21,6 +21,7 @@ enum PipelineStage {
 pub struct DataWrite {
     pub cp0_data_register: Option<usize>,
     pub cp0_data_to_write: u64,
+    pub vaddr: VAddr,
 }
 
 
@@ -55,7 +56,7 @@ impl Pipeline {
         if self.stalled > 0 {
             self.stalled -= 1;
         } else {
-            println!("RUNNING stage {:?}", self.stage);
+            // println!("RUNNING stage {:?}", self.stage);
             match self.stage {
                 PipelineStage::IF(phase) => {
                     match phase {
@@ -94,7 +95,7 @@ impl Pipeline {
                 PipelineStage::DC(phase) => {
                     match phase {
                         1 => {
-                            self.dc_stage_phase1();
+                            self.dc_stage_phase1(bus);
                         }
                         2 => {
                             self.dc_stage_phase2();
@@ -122,11 +123,11 @@ impl Pipeline {
     fn check_forwarding(&mut self, prev_reg: Option<RegistersUsed>) {
         match prev_reg {
             Some(regs) => {
-                println!("Processing forwading {:?}", regs);
+                // println!("Processing forwading {:?}", regs);
                 let mut new_reg = self.reg_used.unwrap();
                 new_reg.process_forwarding(regs);
                 self.reg_used = Some(new_reg);
-                println!("COMPLETE {:?}", self.reg_used);
+                // println!("COMPLETE {:?}", self.reg_used);
             }
             None => {}
         }
@@ -140,7 +141,7 @@ impl Pipeline {
         // Phase 2
         self.instruction = Some(Instruction(bus.read_word(VAddr(reg.reg_pc))));
         reg.reg_pc = reg.reg_pc.wrapping_add(INSTRUCTION_SIZE);
-        println!("PC: {:#x}", reg.reg_pc);
+        // println!("PC: {:#x}", reg.reg_pc);
     }
 
     fn rf_stage_phase1(&self) {
@@ -149,69 +150,62 @@ impl Pipeline {
     }
 
     fn rf_stage_phase2(&mut self, reg: Registers) {
-        match self.instruction {
-            Some(instr) => {
-                // Phase 2
-                // Register File Read
-                let mut required_regs = instr.get_required_registers();
-                required_regs.process(reg);
-                println!("REG {:?}", required_regs);
-                self.reg_used = Some(required_regs);
-                // Instruction Decode
-                let opcode = instr.opcode();
+        let instr = self.instruction.unwrap();
+        // Phase 2
+        // Register File Read
+        let mut required_regs = instr.get_required_registers();
+        required_regs.process(reg);
+        // println!("REG {:?}", required_regs);
+        self.reg_used = Some(required_regs);
+        // Instruction Decode
+        let opcode = instr.opcode();
 
-                self.opcode = Some(opcode);
-                // VAddr Calc
+        self.opcode = Some(opcode);
+        // VAddr Calc
 
 
-            }
-            None => {}
-        }
     }
 
     fn ex_stage_phase1(&mut self) {
-        match self.instruction {
-            Some(instr) => {
-                match self.opcode {
-                    Some(opcode) => {
-                        let reg_values = self.reg_used.unwrap();
-                        println!("USING {:?}", reg_values);
-                        let imm_value = instr.immediate();
-                        self.reg_used =
-                            Some(opcode.ex_phase1(reg_values, imm_value, &mut self.output_data));
-                        println!("Storing {:?}", self.reg_used);
-                    }
-                    _ => {}
-                }
+        match self.opcode {
+            Some(opcode) => {
+                let reg_values = self.reg_used.unwrap();
+                // println!("USING {:?}", reg_values);
+                let imm_value = self.instruction.unwrap().immediate();
+                self.reg_used =
+                    Some(opcode.ex_phase1(reg_values, imm_value, &mut self.output_data));
+                // println!("Storing {:?}", self.reg_used);
             }
-            None => {}
+            _ => {}
         }
     }
 
     fn ex_stage_phase2(&mut self) {
-        match self.instruction {
-            Some(instr) => {
-                match self.opcode {
-                    Some(opcode) => {
-                        let reg_values = self.reg_used.unwrap();
+        match self.opcode {
+            Some(opcode) => {
+                let reg_values = self.reg_used.unwrap();
 
-                        let imm_value = instr.immediate();
-                        self.reg_used = Some(opcode.ex_phase2(reg_values, imm_value));
-                        println!("Storing {:?}", self.reg_used);
-                    }
-                    _ => {}
-                }
+                let imm_value = self.instruction.unwrap().immediate();
+                self.reg_used = Some(opcode.ex_phase2(reg_values, imm_value));
+                // println!("Storing {:?}", self.reg_used);
             }
-            None => {}
+            _ => {}
         }
     }
 
-    fn dc_stage_phase1(&self) {}
+    fn dc_stage_phase1(&mut self, bus: &mut bus::Bus) {
+        if self.output_data.vaddr.0 > 0 {
+            let reg_values = self.reg_used.unwrap();
+            let output = (bus.read_word(self.output_data.vaddr) as i32) as u64;
+            println!("DC {:#x}", output);
+            self.reg_used = Some(reg_values.with_output(output));
+        }
+    }
 
     fn dc_stage_phase2(&self) {}
 
     fn wb_stage_phase1(&mut self, reg: &mut Registers, cp0: &mut CP0) {
-        println!("Write {:?}", self.reg_used);
+        // println!("Write {:?}", self.reg_used);
 
         match self.output_data.cp0_data_register {
             Some(reg) => {

@@ -97,7 +97,7 @@ impl RegistersUsed {
                     Some(reg2) => {
                         if reg == reg2 {
                             self.rs_val = regs.get_output_value();
-                            println!("SETTING RS {:?}", self.rs_val);
+                            // println!("SETTING RS {:?}", self.rs_val);
                         }
                     }
                     _ => {}

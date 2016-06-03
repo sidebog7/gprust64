@@ -1,6 +1,22 @@
+use std::fmt;
+
 use super::physical_address::PAddr;
 
+#[derive(Copy, Clone)]
 pub struct VAddr(pub u64);
+
+impl fmt::Debug for VAddr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Virtual Address {}", self.0)
+    }
+}
+
+
+impl Default for VAddr {
+    fn default() -> VAddr {
+        VAddr(0)
+    }
+}
 
 impl VAddr {
     pub fn to_paddr(&self) -> PAddr {
