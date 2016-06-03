@@ -1,7 +1,9 @@
 use std::fmt;
 use num::FromPrimitive;
 use super::registers::RegistersUsed;
-use super::opcode::*;
+use super::opcode::opcodes::Opcode;
+use super::opcode::opcodes::Type;
+use super::opcode::opcodes::get_type;
 // use super::opcode::Type;
 // use super::opcode::Opcode;
 // use super::opcode::OpcodeSpecial;

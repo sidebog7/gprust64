@@ -1,5 +1,5 @@
 use std::fmt;
-use super::opcode::Type;
+use super::opcode::opcodes::Type;
 
 const NUM_GPREG: usize = 32;
 const NUM_FPREG: usize = 32;

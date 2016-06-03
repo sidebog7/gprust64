@@ -1,7 +1,7 @@
 use super::super::bus;
 use super::cp0::CP0;
 use super::instruction::Instruction;
-use super::opcode::Opcode;
+use super::opcode::opcodes::Opcode;
 use super::registers::Registers;
 use super::registers::RegistersUsed;
 use super::virtual_address::VAddr;
@@ -72,7 +72,7 @@ impl Pipeline {
                 PipelineStage::RF(phase) => {
                     match phase {
                         1 => {
-                            self.rf_stage_phase1();
+                            self.rf_stage_phase1(reg);
                         }
                         2 => {
                             self.rf_stage_phase2(*reg);
@@ -140,13 +140,14 @@ impl Pipeline {
     fn if_stage_phase2(&mut self, reg: &mut Registers, bus: &mut bus::Bus) {
         // Phase 2
         self.instruction = Some(Instruction(bus.read_word(VAddr(reg.reg_pc))));
-        reg.reg_pc = reg.reg_pc.wrapping_add(INSTRUCTION_SIZE);
+
         // println!("PC: {:#x}", reg.reg_pc);
     }
 
-    fn rf_stage_phase1(&self) {
+    fn rf_stage_phase1(&self, reg: &mut Registers) {
         // Phase 1
         // Cache check, could be a miss
+        reg.reg_pc = reg.reg_pc.wrapping_add(INSTRUCTION_SIZE);
     }
 
     fn rf_stage_phase2(&mut self, reg: Registers) {

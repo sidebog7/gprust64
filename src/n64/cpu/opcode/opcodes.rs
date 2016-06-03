@@ -1,7 +1,7 @@
-use super::instruction::Instruction;
-use super::registers::RegistersUsed;
-use super::pipeline::DataWrite;
-use super::virtual_address::VAddr;
+use super::super::instruction::Instruction;
+use super::super::registers::RegistersUsed;
+use super::super::pipeline::DataWrite;
+use super::super::virtual_address::VAddr;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -10,6 +10,20 @@ pub enum Type {
     RTYPECP,
     JTYPE,
 }
+
+// pub trait IsOpcode {
+//     fn get_type() -> Type;
+//     fn ex_phase1(&self,
+//                  reg_values: RegistersUsed,
+//                  imm_value: u16,
+//                  output_data: &mut DataWrite)
+//                  -> RegistersUsed;
+//
+//     fn ex_phase2(&self, reg: RegistersUsed) -> RegistersUsed;
+// }
+//
+
+
 
 enum_from_primitive! {
     #[derive(Debug, Copy, Clone)]
@@ -109,6 +123,14 @@ impl Opcode {
             Opcode::ANDI => {
                 let imm_ext = imm_value as u64;
                 reg_values.with_output(imm_ext & reg_values.rs_val.unwrap())
+            }
+            Opcode::BEQL => {
+                // Check for equality
+
+                // set PC to PC+target if equali
+
+                // otherwise clear delay slot?!?
+                reg_values
             }
             _ => panic!("Unknown phase 1 execution {:?}", self),
         }
