@@ -84,7 +84,7 @@ impl Pipeline {
                     self.check_forwarding(prev_reg);
                     match phase {
                         1 => {
-                            self.ex_stage_phase1();
+                            self.ex_stage_phase1(reg);
                         }
                         2 => {
                             self.ex_stage_phase2();
@@ -167,14 +167,14 @@ impl Pipeline {
 
     }
 
-    fn ex_stage_phase1(&mut self) {
+    fn ex_stage_phase1(&mut self, reg: &mut Registers) {
         match self.opcode {
             Some(opcode) => {
                 let reg_values = self.reg_used.unwrap();
                 // println!("USING {:?}", reg_values);
                 let imm_value = self.instruction.unwrap().immediate();
                 self.reg_used =
-                    Some(opcode.ex_phase1(reg_values, imm_value, &mut self.output_data));
+                    Some(opcode.ex_phase1(reg_values, reg, imm_value, &mut self.output_data));
                 // println!("Storing {:?}", self.reg_used);
             }
             _ => {}

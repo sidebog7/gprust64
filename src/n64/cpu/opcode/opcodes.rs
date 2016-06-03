@@ -1,7 +1,9 @@
 use super::super::instruction::Instruction;
+use super::super::registers::Registers;
 use super::super::registers::RegistersUsed;
 use super::super::pipeline::DataWrite;
 use super::super::virtual_address::VAddr;
+
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -89,6 +91,7 @@ enum_from_primitive! {
 impl Opcode {
     pub fn ex_phase1(&self,
                      reg_values: RegistersUsed,
+                     reg: &mut Registers,
                      imm_value: u16,
                      output_data: &mut DataWrite)
                      -> RegistersUsed {
@@ -126,10 +129,15 @@ impl Opcode {
             }
             Opcode::BEQL => {
                 // Check for equality
-
-                // set PC to PC+target if equali
-
-                // otherwise clear delay slot?!?
+                let branch = reg_values.rs_val.unwrap() == reg_values.rt_val.unwrap();
+                // set PC to PC+target if equal
+                if branch {
+                    let imm_ext = ((imm_value << 2) as i16) as u64;
+                    reg.reg_pc = reg.reg_pc.wrapping_add(imm_ext);
+                } else {
+                    // otherwise clear delay slot?!?
+                    println!("CLEAR SLOT!!!");
+                }
                 reg_values
             }
             _ => panic!("Unknown phase 1 execution {:?}", self),
